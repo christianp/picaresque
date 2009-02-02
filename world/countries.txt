@@ -1,0 +1,6 @@
+type country
+
+England
+France
+Germany
+Italy

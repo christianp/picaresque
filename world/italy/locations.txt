@@ -1,0 +1,6 @@
+type locationname
+country Italy
+
+Rome
+Venice
+Milan

@@ -1,0 +1,7 @@
+type locationname
+country France
+
+Paris
+Nimes
+Troyes
+Lille

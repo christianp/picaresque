@@ -1,0 +1,39 @@
+type firstname
+country Italy
+gender male
+
+Guido
+Ugo
+Gerardus
+Iacobus
+Iohannes
+Giannis
+Martinus
+Buonaginta
+Albertus
+Petrus
+Piero
+Bartholomeus
+Bernardus
+Uguiccio
+Guillielmus
+Ventura
+Orlandus 
+Bandus
+Lanbertus
+Simone
+Micchelle
+Ubertus
+Barone
+Bonus
+Tomas
+Niccolo
+Niccolaus
+Rubertus
+Buonaventura
+Leonardus
+Marcus
+Riccus
+Stefanus
+Ubaldus
+Francescus

@@ -1,0 +1,6 @@
+type locationname
+country Germany
+
+Berlin
+Freiburg
+Bonn
