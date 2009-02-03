@@ -27,8 +27,9 @@ Type datum
 End Type
 
 Type db Extends TList
-	Method Load(fname$)
+	Method Load(fname$,mode=0)
 		f:TStream=ReadFile(fname)
+		
 		l$=f.ReadLine()
 		Local words$[]
 		properties:tmap=New tmap
@@ -37,29 +38,31 @@ Type db Extends TList
 			properties.insert words[0],words[1]
 			l=f.ReadLine()
 		Wend
-		While Not Eof(f)
-			l=f.ReadLine()
-			If l
-				addlast datum.Create( l,properties)
-			EndIf
-		Wend
+		If mode=1 'entire file is one datum
+			t$=""
+			While Not Eof(f)
+				t:+f.ReadString(1000)
+			Wend
+			addlast datum.Create( t,properties )
+		Else 'each line is a separate datum
+			While Not Eof(f)
+				l=f.ReadLine()
+				If l
+					addlast datum.Create( l,properties)
+				EndIf
+			Wend
+		EndIf
+		
 		CloseFile f
 	End Method
 	
-	Method DirLoad(dname$)
-		For fname$=EachIn LoadDir(dname)
-			If Not (fname="." Or fname="..")
-				path$=dname+"/"+fname
-				Select FileType(path)
-				Case 1 'file
-					Load path
-					Print path
-				Case 2
-					DirLoad path
-				End Select
-			EndIf
+	Function dirload:db(dname$,mode=0)
+		d:db=New db
+		For fname$=EachIn crawldir(dname)
+			d.Load fname,mode
 		Next
-	End Method
+		Return d
+	End Function
 	
 	Method filter:db(expr$)
 		Local conditions$[]=expr.split("&")
@@ -79,7 +82,8 @@ Type db Extends TList
 		Return db2
 	End Method
 	
-	Method pick$()
+	Method pick$(kind$="")
+		If kind Return filter("type="+kind).pick()
 		Return datum(picklist(Self)).value
 	End Method
 End Type

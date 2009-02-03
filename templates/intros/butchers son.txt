@@ -1,0 +1,10 @@
+type intro
+
+Once upon a time, in the city of $home$, there lived the son of a butcher, $hero.fullname$.
+It came to pass that in the course of events, $hero$ fell in love with $darling.fullname$, the baker's daughter.
+
+But the fishmonger, the scandalous $nemesis.fullname$, also had designs on $darling$. He framed $hero$ for the theft of a sticky bun, and bought $darling$ off her father for a pound of fine smoked salmon. 
+
+Smoked salmon sandwiches are absolutely scrumptious, how could he refuse? $nemesis$ sold up his fish shop and left the city in the night.
+
+Anyway, when $hero$ finally got out of the town stocks, he resolved straight away to find $darling$, wherever she was, and win her back from $nemesis$. He wiped the rotten tomatoes off his face, and walked out of $home$.

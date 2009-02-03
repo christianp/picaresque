@@ -23,15 +23,10 @@ Type grammar
 	
 	Function loadall()
 		grammars=New tmap
-		dir=ReadDir("grammars")
-		Repeat
-			t$=NextFile( dir )
-			If t="" Exit
-			If Not (t="." Or t="..")
-				name$=t[..Len(t)-4]
-				grammars.insert name, grammar.fromfile(ReadFile("grammars/"+t),name)
-			EndIf
-		Forever
+		For t$=EachIn crawldir("grammars")
+			name$=filename(t)
+			grammars.insert name, grammar.fromfile(ReadFile(t),name)
+		Next
 	End Function
 	
 	Method addrule(rule$)
@@ -550,6 +545,7 @@ Type grammar
 		Next
 	End Method
 	
+	Rem
 	Method fill:sentence(info$[])
 		init
 		Local o:TList
@@ -571,6 +567,7 @@ Type grammar
 		Wend
 		Return out()
 	End Method
+	EndRem
 	
 	Method out:sentence()
 		Return tstack(stacks.first()).s
@@ -1004,3 +1001,5 @@ While Not (KeyHit(KEY_ESCAPE) Or AppTerminate())
 	Flip
 	Cls
 Wend
+EndRem
+

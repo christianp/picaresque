@@ -1,0 +1,3 @@
+type journey
+
+After several months of wandering, $hero$ ended up in $curlo$, in $curlo.country$.
