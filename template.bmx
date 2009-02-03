@@ -35,7 +35,7 @@ Type template
 		For bit$=EachIn bits
 			s:+bit
 			If i<Len(vars)
-				s:+game.gettemplateinfo(vars[i])
+				s:+game.getinfo(vars[i])
 				i:+1
 			EndIf
 		Next

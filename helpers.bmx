@@ -38,4 +38,4 @@ End Function
 
 Function debugo(txt$)
 	Print "  >> "+txt
-End function
+End Function

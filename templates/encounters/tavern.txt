@@ -1,0 +1,5 @@
+type encounter
+
+$hero$ headed to the Tavern, where he encountered a villainous-looking smuggler called $opponent.name$.
+
+"What do you want from $opponent$, lad?" the outlaw asked. He wore two eyepatches, across which were sewn the words, "I never saw nothing".

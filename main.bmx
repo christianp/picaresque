@@ -13,6 +13,7 @@ Type tgame
 	Field failures
 	Field hero:character,darling:character,nemesis:character
 	Field home:location,curlo:location,prvlo:location
+	Field opponent:character
 	
 	Field curmode:gamemode
 	
@@ -48,7 +49,7 @@ Type tgame
 		curlo=location.Create(country)
 	End Method
 		
-	Method gettemplateinfo$(p$)
+	Method getinfo$(p$)
 		Local bits$[]=p.split(".")
 		Local t:thing
 		Select bits[0]
@@ -58,6 +59,8 @@ Type tgame
 			t=darling
 		Case "nemesis"
 			t=nemesis
+		Case "opponent"
+			t=opponent
 		Case "home"
 			t=home
 		Case "curlo"
@@ -81,7 +84,7 @@ Type tgame
 	Method update()
 		curmode.update
 		
-		If curmode.status=1 'this mode is finished
+		If curmode.status 'this mode is finished
 			Select TTypeId.ForObject(curmode).name()
 			Case "narration"
 				debugo narration(curmode).kind+" finished"
@@ -89,8 +92,12 @@ Type tgame
 				Case "intro"  'finished intro, now move to first location
 					journey
 				Case "journey"
-					End
+					encounter
+				Case "encounter"
+					curmode=New convo
 				End Select
+			Case "convo"
+				End
 			End Select
 		EndIf
 	End Method
@@ -104,6 +111,11 @@ Type tgame
 	
 	Method journey()
 		curmode=narration.Create("journey")
+	End Method
+	
+	Method encounter()
+		opponent=character.Create("male","country="+curlo.country)
+		curmode=narration.Create("encounter")
 	End Method
 End Type
 
@@ -131,6 +143,114 @@ Type narration Extends gamemode
 		Print text
 		status=1
 	End Method
+	
+	Method draw()
+	End Method
+End Type
+
+Type convo Extends gamemode
+	Field success#
+	Field g:grammar
+	Field agreeability#
+	
+	Method New()
+		g=grammar.find("hero question")
+		agreeability=Rnd(0,1)
+		debugo "agreeability: "+agreeability
+	End Method
+	
+	Method update()
+		in$=Input(">")
+		say in
+		If in="quit" status=1
+	End Method
+	
+	Method say(in$)
+		g.init
+		For word$=EachIn in.split(" ")
+			g.in=word
+			Print word+" "+g.parse()
+			
+			g.addword word
+		Next
+		s:sentence=g.out()
+		Print s.repr()
+		Select s.getparam("$") 'what kind of thing did the player say?
+		Case "darling" 'question about darling
+			respond "darling"
+		Case "opinion" 'player gave opinion
+			score#=rateadverb(s.getparam("adverb"))*rateadjective(s.getparam("opinion"))
+			react score
+		Case "description"
+			score#=rateadverb(s.getparam("adverb"))*rateadjective(s.getparam("adjective"))
+			react score
+		Case "comparison"
+			If s.getparam("adjective")=s.getparam("comparison")
+				score#=2*rateadjective(s.getparam("adjective"))
+			Else
+				'score=-2*rateadjective(s.getparam("adjective"))
+				score#=0
+			EndIf
+			react score
+		End Select
+	End Method
+	
+	Method rateadverb#(adverb$)
+		Select adverb
+		Case "big"
+			Return 1
+		Case "small"
+			Return .3
+		Default
+			Return .3
+		End Select
+		Return score
+	End Method
+	
+	Method rateadjective#(adjective$)
+		Select adjective
+		Case "good","sharp","clever","beauty","unique"
+			Return 1
+		Case "bad","stupid","ugly","common"
+			Return -1
+		End Select
+	End Method
+	
+	Method react(score#)
+		If score>0	'compliment
+			p#=agreeability
+		Else	'insult
+			p=1-agreeability
+		EndIf
+		If Rnd(0,1)<=p	'success - got a reaction
+			If score>0
+				respond "compliment"
+			Else
+				respond "insult"
+			EndIf
+			succeed score
+		Else
+			respond "laugh"
+		EndIf
+	End Method
+	
+	Method respond(kind$)
+		rg:grammar=grammar.find("opponent "+kind)
+		'DebugStop
+		s:sentence=rg.fill()
+		Print s.txt
+		g=grammar.find("hero response")
+	End Method
+	
+	Method succeed(score#)
+		success:+score
+		debugo "success: "+success
+		If success>5	'do debate now
+			status=1
+		ElseIf success<-5 'do fight now
+			status=2
+		EndIf
+	End Method	
 	
 	Method draw()
 	End Method
