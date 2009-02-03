@@ -1,0 +1,8 @@
+^ "font": "handwriting", "size": 100^^ "align": "right" ^#datename#
+
+#home#
+
+^ "align": "left" ^Dear #recipient#,
+
+
+	

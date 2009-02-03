@@ -1,0 +1,5 @@
+^ "font": "handwriting", "size": 200, "align": "right" ^#placename#
+
+^ "align": "left","size": 100^#residents#
+
+#distance#

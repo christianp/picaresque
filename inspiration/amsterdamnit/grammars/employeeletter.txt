@@ -1,0 +1,47 @@
+command sell ?sellquantity ?product for ?amount ?and
+command buy ?buyquantity ?product for ?amount ?and
+command start trading in ?newname
+command how ?muchmany ?stock do you have?
+command what is the price of ?product \?
+command yours ?valediction
+command send ?package to ?othermerchant ?and
+command every ?timeperiod ?$
+command stop what you were doing
+command tell me the latest news
+command cancel
+command build a factory producing ?output
+$ after you have done that, ?$
+$ ?command
+and
+and and ?$
+
+muchmany much
+muchmany many
+
+stock ??product
+stock money
+quantity ??number
+buyquantity ?quantity
+buyquantity all available
+buyquantity no more than ?quantity
+sellquantity ?quantity
+sellquantity ??percentage of your
+sellquantity all of your
+product ??product
+amount ??money each
+amount the going price
+amount ??percentage of the going price
+newname ??name
+valediction truly
+valediction faithfully
+valediction sincerely
+package ??strictmoney
+package ?sellquantity ?stock
+port ??port
+merchant ??merchant
+othermerchant ??othermerchant
+output ??output
+timeperiod day
+timeperiod week
+timeperiod month
+timeperiod ??number days

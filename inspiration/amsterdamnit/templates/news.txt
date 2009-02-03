@@ -1,0 +1,7 @@
+^ "rule": 100^
+^ "font": "headline", "size": 200, "align": "centre" ^The #name# Journal
+^ "rule": 50^
+
+^ "font": "print", "size": 100^#datename#
+^ "rule": 30^
+^ "size": 80, "align": "left" ^

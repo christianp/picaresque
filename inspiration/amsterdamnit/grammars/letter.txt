@@ -1,0 +1,91 @@
+command *contractbid my agent ??employee will sell you ??pluralproduct for ??percentage commission.
+command summarise your position
+command build a factory producing ??output ?and
+command tell me the latest news
+command cancel
+command *stop disregard your previous orders
+command *whatprice tell me the price of ??pluralproduct \?
+
+command *howmany tell me how ?muchmany you have
+muchmany much ??muchproduct
+muchmany many ??manyproduct
+
+quantity 1 ??singleproduct
+quantity ??pluralnumber ??pluralproduct
+
+command buy ?buyquantity for ?amount ?and
+buyquantity ?quantity
+buyquantity all available ??pluralproduct
+buyquantity no more than ?quantity ??pluralproduct
+
+command sell ?sellquantity for ?amount ?and
+sellquantity ?quantity
+sellquantity ??percentage of your ??pluralproduct
+sellquantity all of your ??pluralproduct
+
+product ??product
+amount ??money each
+amount *goingprice the going price
+amount ??percentage of the going price
+newname ??name
+
+$ yours ?valediction
+valediction truly
+valediction faithfully
+valediction sincerely
+
+command send ?package to ??mymerchant ?and
+package ??strictmoney
+package 1 ??singleproduct
+package ??pluralnumber ??pluralproduct
+package ??percentage of your ?stock
+package all of your ?stock
+stock ??pluralproduct
+stock money
+
+$ every ?timeperiod ?$
+timeperiod day
+timeperiod week
+timeperiod month
+timeperiod ??number days
+
+$ if ?expression ?conjunction then ?command 
+$ when ?expression ?conjunction ?command
+
+expression *youhave you have ?compquantity
+compquantity *atleast at least ?quantity
+compquantity *morethan more than ?quantity
+compquantity *fewerthan fewer than ?quantity
+compquantity *atleast at least ??money
+compquantity *morethan more than ??money
+compquantity *fewerthan less than ??money
+compquantity *no no ?nothing
+nothing money
+nothing ??pluralproduct
+
+expression *priceof the price of ??pluralproduct is ?compprice
+compprice *lessthan less than ??money
+compprice *morethan more than ??money
+compprice *between between ??money and ??money
+
+expression *forsale there ?isare for sale
+isare *any is ??muchproduct
+isare *any are ??muchproduct
+isare *any is any ??muchproduct
+isare *any are any ??manyproduct
+isare are ??pluralnumber ??pluralproduct
+isare is 1 ??singleproduct
+
+expression *monthis it is ??month
+
+conjunction and ?expression ?conjunction
+conjunction or ?expression ?conjunction
+conjunction
+
+
+$ after you have done that, ?$
+$ try to ?command
+$ ?command
+and
+and and ?$
+

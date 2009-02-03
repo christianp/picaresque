@@ -1,0 +1,5 @@
+$ new game
+$ save game
+$ load game
+$ back to game
+$ quit

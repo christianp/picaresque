@@ -1,0 +1,53 @@
+^ "font" : "headline", "align": "centre" ^The London Journal
+
+^ "column": { "number": 1, "width": 50, "height": -1}^
+^ "align": "centre","font": "headline", "size": 80 ^Commodity Prices
+^ "column": { "number": 2, "width": 100 , "height": -1}^
+^ "align": "centre","font": "print", "size": 60 ^Product
+^ "rule": 100^
+^ "align": "left", "font": "print", "size": 40^
+Beets
+
+Hops
+
+Barley
+
+^ "endcolumn": 1^
+^ "align": "centre","font": "print", "size": 60 ^Price
+^ "rule": 100^
+^ "align": "right","font": "print", "size": 40^
+$1.00
+
+$3.00
+
+$5.00
+^ "endcolumn": 1^
+^ "endcolumn": 1^
+^ "column": { "number": 3, "height": 500}^
+^ "align": "centre", "font": "headline", "size": 100^Why is stuff so hard?
+
+^ "align": "left", "font": "print", "size": 60^Jim Bob
+^"size": 40^Editor
+^ "rule": 60^
+^"align": "left"^^ "font" : "print", "size": 50^This is the
+beginning of a funny thing. Tell the world that this method is better than printing lines out at random onto a scrolling text screen. I must ramble on for a bit more to make up another line which will take a while so let's make a run on sentence which never seems to end, that will do the trick. 
+
+The UK is finally to remove its remaining two opt-outs to the UN convention on the rights of the child. This should give much-needed protection to thousands of children in contact with UK immigration officials, and to children held in custody - but only if ministers reverse harmful policy.
+
+Last year over 7,000 children applied for asylum in the UK; nearly half had no parent or guardian with them.
+
+Children in immigration detention (about 2,000 each year) are made to feel like criminals - dawn raids, long journeys in caged vans, roll counts, and watching their distraught parents being handcuffed and forced onto aeroplanes. When the chief inspector of prisons asked what would make life better, detained children said they would like to go swimming and to return to their schools.
+
+Jacqui Smith says the removal of the reservation shows the government's "commitment to treat children in the UK immigration system with compassion". 
+
+Human rights also require respect for each person's human dignity and fair treatment. Current policy fails these tests.^ "endcolumn": 0^
+a line of text which has not much to do with anything.
+It is entirely possible that ^ "size" : 60^ big is better but ^"size":100^ how much better?
+^ "font" : "handwriting", "size": 60 ^Monday, 15th December 1500
+Dear Jim,
+	Hello there. How are you? I have been told by my close associates that there are plans afoot to behead the Queen.
+	
+Yours,
+^ "font": "AquilineTwo.ttf"^	Bob
+	
+^ "font": "headline", "size": 100^test ^"font":"handwriting"^test ^"font":"print"^test

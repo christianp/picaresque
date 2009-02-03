@@ -1,0 +1,15 @@
+$ my agent ?employee will sell you ?product for ?commission commission.
+$ can you supply me with ?quantity ?product per day?
+$ cancel
+
+quantity ??number
+product ??product
+employee ??employee
+money ??money
+commission ??percentage
+
+
+$ yours ?valediction
+valediction truly
+valediction faithfully
+valediction sincerely
