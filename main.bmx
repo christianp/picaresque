@@ -165,16 +165,17 @@ Type convo Extends gamemode
 		If in="quit" status=1
 	End Method
 	
-	Method say(in$)
+	Method say(in$)	
+		debugo g.name
 		g.init
 		For word$=EachIn in.split(" ")
 			g.in=word
-			Print word+" "+g.parse()
+			g.parse()
 			
 			g.addword word
 		Next
 		s:sentence=g.out()
-		Print s.repr()
+		'Print s.repr()
 		Select s.getparam("$") 'what kind of thing did the player say?
 		Case "darling" 'question about darling
 			respond "darling"
@@ -217,6 +218,7 @@ Type convo Extends gamemode
 	End Method
 	
 	Method react(score#)
+		debugo "react to "+score
 		If score>0	'compliment
 			p#=agreeability
 		Else	'insult
@@ -239,10 +241,16 @@ Type convo Extends gamemode
 		'DebugStop
 		s:sentence=rg.fill()
 		Print s.txt
-		g=grammar.find("hero response")
+		
+		If kind="anecdote"
+			g=grammar.find("hero response")
+		Else
+			respond "anecdote"
+		EndIf
 	End Method
 	
 	Method succeed(score#)
+		debugo "score: "+score
 		success:+score
 		debugo "success: "+success
 		If success>5	'do debate now

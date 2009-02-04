@@ -13,13 +13,11 @@ Type grammar
 		rules=New TList
 	End Method
 	
-	Rem
 	Function find:grammar(name$)
 		If grammars.contains(name)
 			Return grammar(grammars.valueforkey(name))
 		EndIf
 	End Function
-	EndRem
 	
 	Function loadall()
 		grammars=New tmap
@@ -41,7 +39,11 @@ Type grammar
 			txt$=words[1]
 			If txt[0]=42
 				reptxt$=txt[1..]
-				txt=words[2]
+				If Len(words)>2
+					txt=words[2]
+				Else
+					txt=""
+				EndIf
 				words=words[2..]
 			Else
 				reptxt$=txt
@@ -50,7 +52,7 @@ Type grammar
 		EndIf
 		nxt:TList=ListFromArray(words[1..])
 		gr:gnfrule=gnfrule.Create(symbol,txt,reptxt,nxt)
-		'Print gr.repr()
+		Print gr.repr()
 		rules.addlast gr
 	End Method
 	
@@ -193,6 +195,11 @@ Type grammar
 	End Method
 	
 	Method parse()
+		'oin$=in
+		'Select in[Len(in)-1]
+		'Case 92,46,63,33
+		'	in=in[..Len(in)-1] 'remove trailing punctuation
+		'End Select
 		caught=0
 		nstacks=New TList
 		ostacks:TList=New TList
@@ -211,6 +218,7 @@ Type grammar
 				stacks.remove stack
 			Next
 		EndIf
+		'in=oin
 		Return caught
 	End Method
 	
@@ -545,19 +553,15 @@ Type grammar
 		Next
 	End Method
 	
-	Rem
-	Method fill:sentence(info$[])
+	Method fill:sentence()
 		init
 		Local o:TList
 		o=options()
 		While o.count()
 			option$=String(picklist(o))
+			'Print option
 			If option[..2]="??"
-				i=0
-				While i<Len(info) And info[i]<>option[2..] 
-					i:+2
-				Wend
-				If i<Len(info) option=info[i+1]
+				option=game.getinfo(option[2..])
 			EndIf
 			in=option
 			parse
@@ -565,9 +569,11 @@ Type grammar
 			in=""
 			o=options()
 		Wend
+		While tstack(stacks.first()).count()
+			addword String(tstack(stacks.first()).removefirst())
+		Wend
 		Return out()
 	End Method
-	EndRem
 	
 	Method out:sentence()
 		Return tstack(stacks.first()).s
@@ -795,6 +801,8 @@ Type gnfrule
 End Type
 
 Function validinput$(kind$,in$)
+	debugo "valid? "+kind+": "+in
+	If Lower(game.getinfo(kind))=Lower(in) Return in
 	Select kind
 	Default
 		Return in

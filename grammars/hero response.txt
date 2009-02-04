@@ -6,6 +6,7 @@ adverb *big totally
 adverb *big entirely
 adverb *big completely
 adverb *big strikingly
+adverb *big so
 
 adverb *small somewhat
 adverb *small a little
@@ -74,6 +75,7 @@ comparison *soft a lump of clay
 comparison *soft sheep's wool
 
 comparison *clever the wisest scholar
+comparison *clever the quickest courtier
 
 comparison *stupid the village idiot
 comparison *stupid a sheep
