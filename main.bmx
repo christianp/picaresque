@@ -9,8 +9,7 @@ Include "db.bmx"
 Global world:db,templates:db
 Global game:tgame
 Type tgame
-	Field progress
-	Field failures
+	Field wins,attempts,progress
 	Field hero:character,darling:character,nemesis:character
 	Field home:location,curlo:location,prvlo:location
 	Field opponent:character
@@ -29,9 +28,7 @@ Type tgame
 	
 	Method init()
 		makeheroes
-		curmode=narration.Create("intro")
-
-		makenextlo
+		narrate "intro"
 	End Method
 		
 	Method makeheroes()
@@ -95,9 +92,32 @@ Type tgame
 					encounter
 				Case "encounter"
 					curmode=New convo
+				Case "setback"
+					encounter
+				Case "finish"
+					End
 				End Select
 			Case "convo"
-				End
+				Select curmode.status
+				Case 1	'debate
+					debatehim
+				Case 2	'fight
+					fighthim
+				End Select
+			Case "fight"
+				Select curmode.status
+				Case 1	'won
+					win
+				Case 2
+					lose
+				End Select
+			Case "debate"
+				Select curmode.status
+				Case 1	'won
+					win
+				Case 2
+					lose
+				End Select
 			End Select
 		EndIf
 	End Method
@@ -109,13 +129,47 @@ Type tgame
 	
 	'GAME MECHANICS STUFF
 	
+	Method narrate(kind$)
+		curmode=narration.Create(kind)
+	End Method
+	
 	Method journey()
-		curmode=narration.Create("journey")
+		progress:+1
+		If progress=3	'finished the game!
+			finish
+		Else
+			makenextlo
+			narrate "journey"
+		EndIf
 	End Method
 	
 	Method encounter()
+		attempts:+1
 		opponent=character.Create("male","country="+curlo.country)
-		curmode=narration.Create("encounter")
+		narrate "encounter"
+	End Method
+	
+	Method debatehim()
+		curmode=New debate
+	End Method
+	
+	Method fighthim()
+		curmode=New fight
+	End Method
+	
+	Method win()
+		debugo "win!"
+		wins:+1
+		journey
+	End Method
+	
+	Method lose()
+		debugo "lose!"
+		narrate "setback"
+	End Method
+	
+	Method finish()
+		narrate "finish"
 	End Method
 End Type
 
@@ -193,6 +247,10 @@ Type convo Extends gamemode
 				score#=0
 			EndIf
 			react score
+		Case "debate"
+			react 5
+		Case "fight"
+			react -5
 		End Select
 	End Method
 	
@@ -242,21 +300,26 @@ Type convo Extends gamemode
 		s:sentence=rg.fill()
 		Print s.txt
 		
-		If kind="anecdote"
+		Select kind
+		Case "anecdote"
 			g=grammar.find("hero response")
-		Else
+		Case "fight"
+			status=2
+		Case "debate"
+			status=1
+		Default
 			respond "anecdote"
-		EndIf
+		End Select
 	End Method
 	
 	Method succeed(score#)
 		debugo "score: "+score
 		success:+score
 		debugo "success: "+success
-		If success>5	'do debate now
-			status=1
-		ElseIf success<-5 'do fight now
-			status=2
+		If success>=5	'do debate now
+			respond "debate"
+		ElseIf success<=-5 'do fight now
+			respond "fight"
 		EndIf
 	End Method	
 	
@@ -264,6 +327,50 @@ Type convo Extends gamemode
 	End Method
 End Type
 
+Type debate Extends gamemode
+
+	Method update()
+		in$=Input("Win debate? y/n~n")
+		If in="y" status=1
+		If in="y"
+			win
+		Else
+			lose
+		EndIf
+	End Method
+	
+	Method win()
+		status=1
+	End Method
+	Method lose()
+		status=2
+	End Method
+	
+	Method draw()
+	End Method
+End Type
+
+Type fight Extends gamemode
+
+	Method update()
+		in$=Input("Win fight? y/n~n")
+		If in="y"
+			win
+		Else
+			lose
+		EndIf
+	End Method
+	
+	Method win()
+		status=1
+	End Method
+	Method lose()
+		status=2
+	End Method
+	
+	Method draw()
+	End Method
+End Type
 
 
 'COMMENCE THE GAMES!

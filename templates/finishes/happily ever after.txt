@@ -1,0 +1,3 @@
+type finish
+
+$hero$ and $darling$ lived happily ever after.

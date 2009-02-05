@@ -1,6 +1,8 @@
+$ *debate debate
+$ *fight fight
+
 $ *opinion That is ?adverb ?opinion
 $ *opinion How ?opinion
-
 adverb *big perfectly
 adverb *big totally
 adverb *big entirely

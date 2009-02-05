@@ -1,0 +1,6 @@
+type setback
+
+$hero$ spent the next three years in the town jail, his only companions the cruel jailer and a rotating roster of petty thieves and lunatics.
+All the time, his passion for $darling$ burned undimmed, and eventually he swapped his place with a wandering madman who had identified $hero$ as the last of an ancient line of philosopher-kings.
+
+Free again, $hero$ resumed his quest to free $darling$ and give $nemesis$ his due.
