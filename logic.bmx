@@ -5,7 +5,7 @@ Type lterm
 		Local bits$[]
 		bits=cleversplit(expr,"->")
 		If Len(bits)>1	'implication
-			'Print "imply"
+			''print "imply"
 			t2:lterm=lterm.parse(bits[Len(bits)-1])
 			While Len(bits)>1
 				t2=limplies.Create(lterm.parse(bits[Len(bits)-2]),t2)
@@ -15,7 +15,7 @@ Type lterm
 		EndIf
 		bits=cleversplit(expr,"V")
 		If Len(bits)>1
-			'Print "or"
+			''print "or"
 			t2:lterm=lterm.parse(bits[Len(bits)-1])
 			While Len(bits)>1
 				t2=lor.Create(lterm.parse(bits[Len(bits)-2]),t2)
@@ -25,7 +25,7 @@ Type lterm
 		EndIf
 		bits=cleversplit(expr,"&")
 		If Len(bits)>1
-			'Print "and"
+			''print "and"
 			t2:lterm=lterm.parse(bits[Len(bits)-1])
 			While Len(bits)>1
 				t2=land.Create(lterm.parse(bits[Len(bits)-2]),t2)
@@ -35,7 +35,7 @@ Type lterm
 		EndIf
 		
 		If Chr(expr[0])="!"
-			'Print "and"
+			''print "and"
 			Return lnot.Create(lterm.parse(expr[1..]))
 		EndIf
 		
@@ -46,7 +46,7 @@ Type lterm
 		Return lconstant.Create(expr)
 	End Function
 
-	Method truth(assumptions:TList) Abstract
+	Method oldtruth(assumptions:TList) Abstract
 	
 	Method repr$() Abstract
 End Type
@@ -63,7 +63,8 @@ Type lnot Extends lpredicate
 		Return n
 	End Function
 
-	Method truth(assumptions:TList)
+	Method oldtruth(assumptions:TList)
+		debugo "not: "+repr()
 		If lconstant(t1)
 			For t:lterm=EachIn assumptions
 				If lnot(t) And lconstant(lnot(t).t1) And lconstant(lnot(t).t1).name=lconstant(t1).name
@@ -77,30 +78,36 @@ Type lnot Extends lpredicate
 		Select TTypeId.ForObject(t1).name()
 		Case "lnot"
 			debugo "not not"
-			Return lnot(t1).t1.truth(assumptions)
+			Return lnot(t1).t1.oldtruth(assumptions)
 		Case "lor"
 			debugo "not or"
 			o:lor=lor(t1)
-			If lnot.Create(o.t1).truth(assumptions) Return True	'relies on side-effect of !t1 being added to assumptions
-			Return lnot.Create(o.t2).truth(assumptions)
+			If lnot.Create(o.t1).oldtruth(assumptions) Return True	'relies on side-effect of !t1 being added to assumptions
+			Return lnot.Create(o.t2).oldtruth(assumptions)
 		Case "limplies"
 			debugo "not ->"
 			i:limplies=limplies(t1)
-			If i.t1.truth(assumptions) Return True	'relies on side-effect again
-			Return lnot.Create(i.t2).truth(assumptions)
+			If i.t1.oldtruth(assumptions) Return True	'relies on side-effect again
+			Return lnot.Create(i.t2).oldtruth(assumptions)
 		Case "land"
 			debugo "not and"
 			a:land=land(t1)
-			If lnot.Create(a.t1).truth(assumptions.copy()) And lnot.Create(a.t2).truth(assumptions.copy())
+			If lnot.Create(a.t1).oldtruth(assumptions.copy()) And lnot.Create(a.t2).oldtruth(assumptions.copy())
+				'print "true"
 				Return True
 			Else
+				'print "false"
 				Return False
 			EndIf
 		Case "lconstant"
 			debugo "not constant"
-			For n:lnot=EachIn assumptions
-				If lconstant(n.t1) And lconstant(t1).name=lconstant(n.t1).name And n<>Self Return True
+			For c:lconstant=EachIn assumptions
+				If lconstant(t1).name=c.name 
+					'print "true"
+					Return True
+				EndIf
 			Next
+			'print "false"
 			Return False
 		End Select
 	End Method
@@ -120,10 +127,13 @@ Type land Extends lpredicate
 		Return a
 	End Function
 
-	Method truth(assumptions:TList)
-		debugo "and"
-		If t1.truth(assumptions) Return True	'relies on side-effect
-		Return t2.truth(assumptions)
+	Method oldtruth(assumptions:TList)
+		debugo "and: "+repr()
+		If t1.oldtruth(assumptions) 
+			'print "true"
+			Return True	'relies on side-effect
+		EndIf
+		Return t2.oldtruth(assumptions)
 	End Method
 	
 	Method repr$()
@@ -141,11 +151,13 @@ Type lor Extends lpredicate
 		Return o
 	End Function
 
-	Method truth(assumptions:TList)
-		debugo "or"
-		If t1.truth(assumptions.copy()) And t2.truth(assumptions.copy())
+	Method oldtruth(assumptions:TList)
+		debugo "or: "+repr()
+		If t1.oldtruth(assumptions.copy()) And t2.oldtruth(assumptions.copy())
+			'print "true"
 			Return True
 		Else
+			'print "false"
 			Return False
 		EndIf
 	End Method
@@ -165,11 +177,13 @@ Type limplies Extends lpredicate
 		Return i
 	End Function
 
-	Method truth(assumptions:TList)
-		debugo "->"
-		If lnot.Create(t1).truth(assumptions.copy()) And t2.truth(assumptions.copy())
+	Method oldtruth(assumptions:TList)
+		debugo "implies: "+repr()
+		If lnot.Create(t1).oldtruth(assumptions.copy()) And t2.oldtruth(assumptions.copy())
+			'print "true"
 			Return True
 		Else
+			'print "false"
 			Return False
 		EndIf
 	End Method
@@ -188,15 +202,116 @@ Type lconstant Extends lterm
 		Return c
 	End Function 
 
-	Method truth(assumptions:TList)
-		debugo "constant"
-		Return True
+	Method oldtruth(assumptions:TList)
+		debugo "constant: "+repr()
+		For n:lnot=EachIn assumptions
+			If lconstant(n.t1) And lconstant(n.t1).name=name
+				'print "true"
+				Return True
+			EndIf
+		Next
+		'print "false"
+		Return False
 	End Method
 
 	Method repr$()
 		Return name
 	End Method
 End Type
+
+Function truth(t:lterm)
+	l:TList=New TList
+	l.addlast t
+	Return truthof(l)
+End Function
+
+Function truthof(unchecked:TList,assumptions:TList=Null)
+	If Not assumptions
+		assumptions=New TList
+	EndIf
+	While unchecked.count()
+		t:lterm=lterm(unchecked.removefirst())
+		'print "   "+t.repr()
+		assumptions.addlast t
+		Select TTypeId.ForObject(t).name()
+		Case "lnot"
+			t1:lterm=lnot(t).t1
+			Select TTypeId.ForObject(t1).name()
+			Case "lnot"
+				'print "not not A - assume A"
+				unchecked.addlast lnot(t1).t1
+			Case "land"
+				'print "not (A and B) - check not A and not B separately"
+				a:land=land(t1)
+				u2:TList=unchecked.copy()
+				u2.addlast lnot.Create(a.t1)
+				u3:TList=unchecked.copy()
+				u3.addlast lnot.Create(a.t2)
+				If truthof(u2,assumptions.copy()) And truthof(u3,assumptions.copy())
+					'print "--True"
+					Return True
+				EndIf
+			Case "lor"
+				'print "not (A or B) - assume not A and not B"
+				o:lor=lor(t1)
+				unchecked.addlast lnot.Create(o.t1)
+				unchecked.addlast lnot.Create(o.t2)
+			Case "limplies"
+				'print "not (A implies B) - assume A and not B"
+				i:limplies=limplies(t1)
+				unchecked.addlast i.t1
+				unchecked.addlast lnot.Create(i.t2)
+			Case "lconstant"
+				'print "not A - if we already have A, done"
+				c:lconstant=lconstant(t1)
+				For c2:lconstant=EachIn assumptions
+					If c2.name=c.name
+						'print "--True"
+						Return True
+					EndIf
+				Next
+			End Select
+		Case "land"
+			'print "A and B - assume A and B"
+			a:land=land(t)
+			unchecked.addlast a.t1
+			unchecked.addlast a.t2
+		Case "lor"
+			'print "A or B - check A and B separately"
+			o:lor=lor(t)
+			u2:TList=unchecked.copy()
+			u2.addlast o.t1
+			u3:TList=unchecked.copy()
+			u3.addlast o.t2
+			If truthof(u2,assumptions.copy()) And truthof(u3,assumptions.copy())
+				'print "--True"
+				Return True
+			EndIf
+		Case "limplies"
+			'print "A implies B - check not A and B separately"
+			i:limplies=limplies(t)
+			u2:TList=unchecked.copy()
+			u2.addlast lnot.Create(i.t1)
+			u3:TList=unchecked.copy()
+			u3.addlast i.t2
+			If truthof(u2,assumptions.copy()) And truthof(u3,assumptions.copy())
+				'print "--True"
+				Return True
+			EndIf
+		Case "lconstant"
+			'print "A - if we have not A, done"
+			c:lconstant=lconstant(t)
+			For n:lnot=EachIn assumptions
+				If lconstant(n.t1) And lconstant(n.t1).name=c.name
+					'print "--True"
+					Return True
+				EndIf
+			Next
+		End Select
+	Wend
+	'print "--False"
+	Return False
+End Function
 
 
 Function cleversplit$[](in$,m$,lb$="(",rb$=")")
@@ -231,13 +346,11 @@ Function cleversplit$[](in$,m$,lb$="(",rb$=")")
 	Return o
 End Function
 
-Function debugo(txt$)
-	Print "  "+txt
-End Function
-
+Rem
 While 1
 	in$=Input(">")
 	l:TList=New TList
-	Print lterm.parse(in).repr()
-	Print lterm.parse(in).truth(l)
+	'print lterm.parse(in).repr()
+	'print lterm.parse(in).truth(l)
 Wend
+endrem

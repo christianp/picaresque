@@ -4,6 +4,8 @@ Include "template.bmx"
 Include "helpers.bmx"
 Include "things.bmx"
 Include "db.bmx"
+Include "debate.bmx"
+Include "logic.bmx"
 
 
 Global world:db,templates:db
@@ -327,6 +329,7 @@ Type convo Extends gamemode
 	End Method
 End Type
 
+Rem
 Type debate Extends gamemode
 
 	Method update()
@@ -349,6 +352,7 @@ Type debate Extends gamemode
 	Method draw()
 	End Method
 End Type
+EndRem
 
 Type fight Extends gamemode
 
@@ -376,6 +380,11 @@ End Type
 'COMMENCE THE GAMES!
 game=New tgame
 game.init
+
+While 1
+debateme
+Wend
+
 Repeat
 	game.update
 	game.draw

@@ -70,10 +70,10 @@ Type grammar
 						For nxt$=EachIn gr.nxt
 							n2gr.nxt.addlast nxt
 						Next
-						If Not bl.contains(ngr)
+						'If Not bl.contains(ngr)
 							l.addlast n2gr
 							bl.addlast ngr
-						EndIf
+						'EndIf
 					 Next
 				Else
 					l.addlast gr
@@ -223,8 +223,8 @@ Type grammar
 	End Method
 	
 	Method parsestack(stack:tstack)
+		If Not stack.count() Return 0
 		word$=String(stack.last())
-		'Print "word: "+word
 		If word[..2]="??"
 			validate$=validinput(word[2..],in)
 			If validate
@@ -302,6 +302,7 @@ Type grammar
 							caught:+1
 							nstack.removelast
 							For word$=EachIn ngr.nxt.reversed()
+								Print "++"+word
 								nstack.addlast word
 							Next
 							'Return 1
@@ -628,17 +629,9 @@ EndRem
 Type sentence
 	Field txt$
 	Field params:TList
-	Field isroutine
 	
 	Method repr$()
 		Return jsonise().repr()
-		Local param$[2]
-		out$=""
-		'out$="~q"+txt+"~q"
-		For param=EachIn params
-			out:+"~n"+param[0]+" : "+param[1]
-		Next
-		Return out
 	End Method
 	
 	Method New()
@@ -649,7 +642,6 @@ Type sentence
 		Local param$[2]
 		j:jsonobject=New jsonobject
 		j.addnewpair("txt",jsonstringvalue.Create(txt))
-		j.addnewpair("isroutine",jsonnumbervalue.Create(isroutine))
 		pj:jsonobject=New jsonobject
 		j.addnewpair("params",pj)
 		For param=EachIn params
@@ -661,7 +653,6 @@ Type sentence
 	Function Load:sentence(j:jsonobject)
 		s:sentence=New sentence
 		s.txt=j.getstringvalue("txt")
-		s.isroutine=j.getnumbervalue("isroutine")
 		pj:jsonobject=j.getobjectvalue("params")
 		Local param$[2]
 		For sp:jsonpair=EachIn pj.pairs
@@ -728,7 +719,6 @@ Type sentence
 		l:TList=New TList
 		s:sentence=New sentence
 		s.txt=txt
-		s.isroutine=isroutine
 		param=[symbol,""]
 		s.params.addfirst param
 		par:TList=params.copy()
@@ -740,7 +730,6 @@ Type sentence
 				EndIf
 				s:sentence=New sentence
 				s.txt=txt
-				s.isroutine=isroutine
 			Else
 			EndIf
 			s.params.addlast param
@@ -754,7 +743,6 @@ Type sentence
 	Function join:sentence(l:TList)
 		s:sentence=New sentence
 		For os:sentence=EachIn l
-			s.isroutine=os.isroutine
 			s.txt=os.txt
 			Local param$[2]
 			For param=EachIn os.params
@@ -801,8 +789,7 @@ Type gnfrule
 End Type
 
 Function validinput$(kind$,in$)
-	debugo "valid? "+kind+": "+in
-	If Lower(game.getinfo(kind))=Lower(in) Return in
+	If Lower(game.getinfo(kind))=Lower(in) Return game.getinfo(kind)
 	Select kind
 	Default
 		Return in
