@@ -1,4 +1,4 @@
-$ What was that?
-$ Are you serious?
-$ I'm sorry, I don't get your point.
-$ That was a joke, yes?
+$ :: What was that?;
+$ :: Are you serious?;
+$ :: I'm sorry, I don't get your point.;
+$ :: That was a joke, yes?;

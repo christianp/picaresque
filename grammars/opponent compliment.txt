@@ -1,3 +1,3 @@
-$ You're too kind!
-$ Oh, go on!
-$ You certainly know how to lay on the charm!
+$ :: You're too kind!;
+$ :: Oh, go on!;
+$ :: You certainly know how to lay on the charm!;

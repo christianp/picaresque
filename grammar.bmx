@@ -1,16 +1,10 @@
-
 Global grammars:tmap
 Type grammar
-	Field name$
 	Field symbols:tmap
-	Field rules:TList
-	Field stacks:TList,nstacks:TList,ostacks:TList
-	Field in$
-	Field interpret(s:sentence)
+	Field name$
 	
 	Method New()
 		symbols=New tmap
-		rules=New TList
 	End Method
 	
 	Function find:grammar(name$)
@@ -21,980 +15,496 @@ Type grammar
 	
 	Function loadall()
 		grammars=New tmap
-		For t$=EachIn crawldir("grammars")
-			name$=filename(t)
-			grammars.insert name, grammar.fromfile(ReadFile(t),name)
+		For path$=EachIn crawldir("grammars")
+			grammar.fromfile(path)
 		Next
 	End Function
 	
-	Method addrule(rule$)
-		'Print rule
-		If rule[0]="#" Return
-		Local words$[]
-		words=rule.split(" ")
-		symbol$=words[0]
-		If Len(words)=1
-			txt$=""
-		Else
-			txt$=words[1]
-			If txt[0]=42
-				reptxt$=txt[1..]
-				If Len(words)>2
-					txt=words[2]
-				Else
-					txt=""
-				EndIf
-				words=words[2..]
-			Else
-				reptxt$=txt
-				words=words[1..]
+	Method addrules(in$)
+		Local lines$[]=in.split(";")
+		For line$=EachIn lines
+			If line[Len(line)-1]=Asc(";")
+				line=line[..Len(line)-1]
 			EndIf
-		EndIf
-		nxt:TList=ListFromArray(words[1..])
-		gr:gnfrule=gnfrule.Create(symbol,txt,reptxt,nxt)
-		Print gr.repr()
-		rules.addlast gr
+			If Trim(line)
+				addrule line
+			EndIf
+		Next
 	End Method
 	
-	Method findrules:TList(symbol$)
+	Function fromfile:grammar(fname$,name$="")
+		If Not name
+			name=filename(fname)
+		EndIf
+		g:grammar=New grammar
+		g.addfile fname
+		g.name=name
+		grammars.insert name,g
+		Return g
+	End Function
+	
+	Method addfile(fname$)
+		f:TStream=ReadFile(fname)
+		s$=""
+		While Not Eof(f)
+			s:+f.ReadString(1000)
+		Wend
+		addrules s
+	End Method
+	
+	Method addrule(in$)
+		in=ltrim(in)
+		'Print "ADD RULE| "+in
+		c=0
+		While c<Len(in) And in[c]<>58
+			c:+1
+		Wend
+		If c=Len(in)
+			'Print "expecting :, didn't find it"
+			Return
+		EndIf
+		
+		Local sections$[]=in.split("::")
+		name$=sections[0]
+		If Len(sections)=2
+			rule$=sections[1]
+			category$=""
+		Else
+			category$=sections[1]
+			'Print "category| "+category
+			rule$=sections[2]
+		EndIf
+		'name$=Trim(in[..c])
+		'rule$=lTrim(in[c+1..])
+		name=Trim(name)
+		rule=ltrim(rule)
+		category=Trim(category)
+		Local terms$[]=rule.split("~~") 'not two tildes in a row, this is a blitz escaped character
+		mode=1
 		l:TList=New TList
-		bl:TList=New TList
-		For gr:gnfrule=EachIn rules
-			If gr.symbol=symbol
-				If issymbol(gr.txt)
-					nsymbol$=gr.txt[1..]
-					nl:TList=findrules(nsymbol)
-					For ngr:gnfrule=EachIn nl
-						n2gr:gnfrule=ngr.copy()
-						If gr.reptxt<>gr.txt n2gr.reptxt=gr.reptxt
-						For nxt$=EachIn gr.nxt
-							n2gr.nxt.addlast nxt
-						Next
-						'If Not bl.contains(ngr)
-							l.addlast n2gr
-							bl.addlast ngr
-						'EndIf
-					 Next
+		For term$=EachIn terms
+			If mode
+				If term Or Len(terms)=1
+					'Print "  add text| '"+term+"'"
+					l.addlast gtext.Create(term)
+				EndIf
+			Else
+				'Print "  add symbol| "+term
+				If term[Len(term)-1]=Asc("*")
+					l.addlast gmultisymbol.Create(findsymbol(term[..Len(term)-1]))
 				Else
-					l.addlast gr
+					l.addlast findsymbol(term)
 				EndIf
 			EndIf
+			mode=1-mode
+		Next
+		Local bits:grule[l.count()]
+		i=0
+		For r:grule=EachIn l
+			bits[i]=r
+			i:+1
+		Next
+		findsymbol(name).addoption gseries.Create(bits,category)
+	End Method
+	
+	Method findsymbol:gsymbol(name$)
+		name=Lower(name)
+		If symbols.contains(name)
+			Return gsymbol(symbols.valueforkey(name))
+		Else
+			y:gsymbol=gsymbol.Create(name)
+			symbols.insert name,y
+			Return y
+		EndIf
+	End Method
+	
+	Method match:sentence(in$)
+		Local remainder:grule[]
+		sn:sentence=New sentence
+		findsymbol("$").match(in,sn)
+		Return sn.getsymbol("$")
+	End Method
+	
+	Method options:TList(in$)
+		l:TList=findsymbol("$").options(in)
+		o:TList=New TList
+		For option$=EachIn l
+			If Not o.contains(option)
+				o.addlast option
+			EndIf
+		Next
+		Return o
+	End Method
+	
+	Method fill$()
+		r:grule=findsymbol("$")
+		in$=""
+		l:TList=options(in)
+		While l.count()
+			in:+String(picklist(l))
+			l=options(in)
+		Wend
+		Return in
+	End Method
+End Type
+
+Type grule
+	
+	Method match$(in$,sn:sentence,depth$="") Abstract
+	
+	Method repr$() Abstract
+	
+	Method options:TList(in$,depth$="") Abstract
+End Type
+
+Type gseries Extends grule
+	Field bits:grule[]
+	Field category$
+	
+	Function Create:gseries(bits:grule[],category$="")
+		s:gseries=New gseries
+		s.bits=bits
+		s.category=category
+		Return s
+	End Function
+
+	Method match$(in$,sn:sentence,depth$="")
+		'print depth+"series match| "+in
+		o$=""
+		If category
+			sn.category=category
+			'Print "SET CATEGORY| "+category
+		EndIf
+		For r:grule=EachIn bits
+			res$=r.match(in,sn,depth+"  ")
+			If Not res Return ""
+			If res=~0 res=""
+			o:+res
+			in=in[Len(res)..]	'sketchy as, depends on not replacing matched text with something of different length
+		Next
+		If o="" o=~0
+		Return o
+	End Method
+	
+	Method options:TList(in$,depth$="")
+		sn:sentence=New sentence
+		'print depth+"series options| "+in
+		For r:grule=EachIn bits
+			res$=r.match(in,sn,depth+"  ")
+			If res
+				If res=~0 res=""
+				in=in[Len(res)..]
+			Else
+				'print depth+"no match, get options ("+in+")"
+				'If Trim(in)
+				'	Return New TList
+				'Else
+					Return r.options(in,depth+"  ")
+				'EndIf
+			EndIf
+		Next
+		Return New TList
+	End Method
+	
+	Method repr$()
+		s$=""
+		For r:grule=EachIn bits
+			s:+r.repr()
+		Next
+		Return s
+	End Method
+End Type
+
+Type gtext Extends grule
+	Field txt$
+	Field reptxt$
+	
+	Function Create:gtext(txt$)
+		t:gtext=New gtext
+		t.txt=txt
+		If txt=""
+			t.reptxt=~0
+		Else
+			t.reptxt=txt
+		EndIf
+		Return t
+	End Function
+
+	Method match$(in$,sn:sentence,depth$="")
+		'Print depth+"text match ("+txt+")| '"+in+"'"
+		'Print depth+"in ~q"+Lower(in[0..Len(txt)])+"~q"
+		'Print depth+"txt~q"+Lower(txt)+"~q "+Len(txt)
+		If Len(in)>=Len(txt) And Lower(in[..Len(txt)])=Lower(txt)
+			'print depth+"text match"
+			If txt
+				sn.addparam sentence.Create("",txt)
+			EndIf
+			Return reptxt
+		Else
+			'print depth+"text no match"
+			Return ""
+		EndIf
+	End Method
+	
+	Method options:TList(in$,depth$="")
+		'print depth+"text options| "+in
+		l:TList=New TList
+		If in
+			If Len(in)<Len(txt) And Lower(txt[..Len(in)])=Lower(in)
+				l.addlast txt[Len(in)..]
+			EndIf
+		Else
+			l.addlast txt
+		EndIf
+		Return l
+	End Method
+	
+	Method repr$()
+		Return "~q"+txt+"~q"
+	End Method
+End Type
+
+Type gsymbol Extends grule
+	Field name$
+	Field rules:TList
+	
+	Method New()
+		rules=New TList
+	End Method
+	
+	Function Create:gsymbol(name$)
+		y:gsymbol=New gsymbol
+		y.name=name
+		Return y
+	End Function
+	
+	Method addoption(r:grule)
+		rules.addlast r
+	End Method
+	
+	Method match$(in$,sn:sentence,depth$="")
+		'print depth+"symbol match ("+name+")| "+in
+
+		info$=game.getinfo(name)
+		If info
+			Return gtext.Create(info).match(in,sn,depth+"  ")
+		EndIf
+		sn2:sentence=sentence.Create(name,"")
+		matches=0
+		mres$=""
+		For r:grule=EachIn rules
+			sn3:sentence=New sentence
+			res$=r.match(in,sn3,depth+"  ")
+			If res
+				For sn4:sentence=EachIn sn3.params
+					sn2.addparam sn4
+				Next
+				If sn3.category
+					sn2.category=sn3.category
+				EndIf
+				If Len(res)>Len(mres) mres=res
+				matches:+1
+			EndIf
+		Next
+		If matches
+			sn.addparam sn2
+			Return mres
+		Else
+			Return ""
+		EndIf
+	End Method
+	
+	Method options:TList(in$,depth$="")
+		'print depth+"symbol options <"+name+">| "+in
+		l:TList=New TList
+		info$=game.getinfo(name)
+		If info
+			For txt$=EachIn gtext.Create(info).options(in,depth+"  ")
+				l.addlast txt
+			next
+		EndIf
+		For r:grule=EachIn rules
+			For txt$=EachIn r.options(in,depth+"  ")
+				l.addlast txt
+			Next
 		Next
 		Return l
 	End Method
 	
-	Function fromfile:grammar(f:TStream,name$)
-		g:grammar=New grammar
-		g.name=name
-		Local words$[]
-		While Not Eof(f)
-			line$=f.ReadLine().Trim()
-			If line
-				g.addrule(line)
-			EndIf
-		Wend
-		Return g
+	Method repr$()
+		s$=""
+		For r:grule=EachIn rules
+			If s s:+"|"
+			s:+r.repr()
+		Next
+		Return "("+s+")"
+	End Method
+End Type
+
+Type gmultisymbol Extends grule
+	Field y:gsymbol
+	
+	Function Create:gmultisymbol(y:gsymbol)
+		ms:gmultisymbol=New gmultisymbol
+		ms.y=y
+		Return ms
 	End Function
 	
-	Method init()
-		stacks=New TList
-		stack:tstack=New Tstack
-		stacks.addlast stack
-		stack.addlast "?$"
-		in=""
-	End Method
-	
-	Method issymbol(word$)
-		If word="" Then Return(0)
-		If Chr(word[0])="?" And Chr(word[1])<>"?"
-			Return 1
-		Else
-			Return 0
-		EndIf
-	End Method
-	
-	Method options:TList(oword$="",morewords=0)
-		ol:TList=New TList
-		For stack:tstack=EachIn stacks
-			If Not stack.count() Then Return(New TList)
-			If oword
-				word$=oword
+	Method match$(in$,sn:sentence,depth$="")
+		'print depth+"multisymbol match| "+in
+		res$=y.match(in,sn,depth)
+		o$=~0
+		While res
+			If res=~0
+				res=""
+				If o="" o=~0
 			Else
-				word$=String(stack.last())
-			EndIf
-			If word[..2]="??"
-				For w$=EachIn guesses(word[2..])
-					If w[..2]<>"??" Or in=""
-						ol.addlast w
-					Else
-						If validinput(word[2..],in)
-							ol.addlast w
-						EndIf
-					EndIf
-				Next
-			ElseIf issymbol(word)
-				symbol$=word[1..]
-				l:TList=findrules(symbol)
-				For ngr:gnfrule=EachIn l
-					If issymbol(ngr.txt) Or ngr.txt[..2]="??"
-						For w2$=EachIn options(ngr.txt)
-							ol.addlast w2
-						Next
-					ElseIf ngr.txt=""
-						numadded=0
-						For stack:tstack=EachIn stacks
-							If stack.count()>=2
-								dude$=String(stack.valueatindex(stack.count()-2))
-								'If Not issymbol(dude)
-									For w2$=EachIn options(dude)
-										If Not ol.contains(w2)
-											ol.addlast w2
-											numadded:+1
-										EndIf
-									Next
-								'EndIf
-							EndIf
-						Next
-						If Not numadded
-							ol.addlast "<nothing>"
-						EndIf
-					Else
-						otxt$=ngr.txt
-						If morewords
-							If ngr.nxt.count()
-								nl:TList=ngr.nxt.copy()
-								nxt$=""
-								While nl.count() And issymbol(nxt)=0 And nxt[..2]<>"??"
-									nxt=String(nl.removefirst())
-									If Not (issymbol(nxt) Or nxt[..2]="??") Then otxt:+" "+nxt
-								Wend
-							EndIf
-						EndIf
-						ol.addfirst otxt
-					EndIf
-				Next
-			Else
-				If word[0]<>92
-					ol.addfirst word
+				If o=~0
+					o=""
 				EndIf
+				o:+res
 			EndIf
-		Next
-		
-		nl:TList=New TList
-		For w$=EachIn ol
-			If Not (Lower(w).startswith(Lower(in)) Or in="" Or w[..2]="??")
-				ol.remove w
-			Else
-				If Not nl.contains(w)
-					nl.addlast w
-				EndIf
-			EndIf
-		Next
-
-		Return nl
-	End Method
-	
-	Method parse()
-		'oin$=in
-		'Select in[Len(in)-1]
-		'Case 92,46,63,33
-		'	in=in[..Len(in)-1] 'remove trailing punctuation
-		'End Select
-		caught=0
-		nstacks=New TList
-		ostacks:TList=New TList
-		For stack:tstack=EachIn stacks
-			If parsestack(stack)
-				caught:+1
-			ElseIf in<>""
-				ostacks.addlast stack
-			EndIf
-		Next
-		For stack:tstack=EachIn nstacks
-			stacks.addlast stack
-		Next
-		If caught
-			For stack:tstack=EachIn ostacks
-				stacks.remove stack
-			Next
-		EndIf
-		'in=oin
-		Return caught
-	End Method
-	
-	Method parsestack(stack:tstack)
-		If Not stack.count() Return 0
-		word$=String(stack.last())
-		If word[..2]="??"
-			validate$=validinput(word[2..],in)
-			If validate
-				in=validate
-				stack.removelast
-				symbol$=word[2..]
-				
-				stack.s.addparam symbol,in
-				Return 1
-			Else
-				Return 0
-			EndIf
-		EndIf
-		If issymbol(word)
-			symbol$=word[1..]
-			l:TList=findrules(symbol)
-			caught=0
-			For ngr:gnfrule=EachIn l
-				If Lower(ngr.txt)=Lower(in)
-						in=ngr.txt
-						nstack:tstack=stack.copy()
-						nstacks.addlast nstack
-						If ngr.reptxt<>ngr.txt And ngr.symbol<>symbol And ngr.nxt.count()
-							If ngr.reptxt[0]<>63
-								nstack.s.addparam symbol,ngr.reptxt
-								nstack.s.addparam ngr.symbol,ngr.txt
-							Else
-								nstack.s.addparam symbol,ngr.txt
-							EndIf
-						Else
-							nstack.s.addparam symbol,ngr.reptxt
-						EndIf
-						caught:+1
-						nstack.removelast
-						For word$=EachIn ngr.nxt.reversed()
-							nstack.addlast word
-						Next
-						'Return 1
-				EndIf
-			Next
-			If Not caught
-				For ngr:gnfrule=EachIn l
-					If ngr.txt=""
-						'Print "nothing rule"
-						If options().contains(in) And stack.count()
-							'Print "in options and stack count"
-							stack.s.addparam symbol,""
-							nstack:tstack=stack.copy()
-							nstack.removelast()
-							If parsestack(nstack)
-								nstacks.addlast nstack
-								addword in
-								caught:+1
-							EndIf
-						EndIf
-					ElseIf ngr.txt[..2]="??" And in<>""
-						validate$=validinput(ngr.txt[2..],in)
-						If validate
-							'Print "in: "+in
-							'Print "validate: "+validate
-							in=validate
-							nstack:tstack=stack.copy()
-							nstacks.addlast nstack
-							If ngr.reptxt<>ngr.txt And ngr.symbol<>symbol
-								If ngr.reptxt[0]<>63
-									nstack.s.addparam symbol,ngr.reptxt
-									nstack.s.addparam ngr.symbol,in
-								Else
-									nstack.s.addparam symbol,in
-								EndIf
-							Else
-								nstack.s.addparam symbol,in
-							EndIf
-							'nstack.s.addparam symbol,in
-							caught:+1
-							nstack.removelast
-							For word$=EachIn ngr.nxt.reversed()
-								Print "++"+word
-								nstack.addlast word
-							Next
-							'Return 1
-						EndIf
-					EndIf
-				Next
-			EndIf
-			If caught
-				stacks.remove stack
-				Return 1
-			EndIf
-		Else
-			If Lower(word)=Lower(in)
-				stack.removelast
-				Return 1
-			EndIf
-		EndIf
-		Return 0
-	End Method
-	
-	Rem
-	Method draw(offx, offy)
-		SetImageFont normalfont
-		SetScale 1,1
-		y=offy
-		outtxt$=tstack(stacks.first()).s.txt
-		x=TextWidth(outtxt)
-		SetColor 0,0,0
-		flines:TList=fittext(outtxt,scrollerwidth-10)
-		For line$=EachIn flines
-			DrawText line,offx,y
-			y:+TextHeight(line)
-		Next
-		y:-TextHeight(line)
-		x=TextWidth(line)
-		If x+TextWidth(in+"_")>scrollerwidth
-			x=0
-			y:+TextHeight(outtxt)
-		EndIf
-		DrawText in+"_",offx+x,y
-		
-	
-		y:+TextHeight(in)
-		starty=y
-		maxwidth=-1
-		
-		clickables=New TList
-		columns:TList=New TList
-		column:TList=New TList
-		longstr$=""
-		maxwidth=-1
-		longest:TList=New TList
-		
-		opts:TList=options("",1)
-		opts.sort
-		For w$=EachIn opts
-			If w[..2]="??"
-				w="<"+clue(w[2..])+">"
-			EndIf
-			twidth=TextWidth(w)
-			theight=TextHeight(w)
-			If twidth>maxwidth Or maxwidth=-1
-				maxwidth=twidth
-				longstr=w
-			EndIf
-			If y+theight>gheight-10
-				columns.addlast column
-				column=New TList
-				longest.addlast longstr
-				longwidth:+TextWidth(longstr)+5
-				maxwidth=-1
-				y=starty
-			Else
-				column.addlast w
-				y:+theight
-			EndIf
-		Next
-		columns.addlast column
-		longest.addlast longstr
-		longwidth:+TextWidth(longstr)+5
-		'End
-		
-		nx=justifyoption(longwidth,offx+x,scrollerwidth-10)
-		For column=EachIn columns
-			y=starty
-			For w$=EachIn column
-				SetColor 0,0,0
-				DrawText w[..Len(in)],nx,y
-				SetColor 100,100,100
-				DrawText w[Len(in)..],nx+TextWidth(in),y
-				clickable.Create w,nx,y,TextWidth(w),TextHeight(w)
-				y:+TextHeight(w)
-			Next
-			longstr$=String(longest.removefirst())
-			nx:+TextWidth(longstr)+5
-		Next
-		
-		'Rem
-		starty=200
-		x=0
-		For stack:tstack=EachIn stacks
-			cy=starty
-			For w$=EachIn stack.reversed()
-				DrawText w,x,cy
-				cy:+15
-			Next
-			x:+100
-		Next
-		'EndRem
-	End Method
-	
-	Method justifyoption(twidth,x,width)
-		If x+twidth<width
-			Return x
-		Else
-			Return width-twidth
-		EndIf
-	End Method
-	EndRem
-	
-	Method addword(in$)
-		For stack:tstack=EachIn stacks
-			stack.s.addword in
-		Next
-	End Method
-	
-	Rem
-	Method update()
-		Local words$[]
-		cr=GetChar()
-		If cr
-			Select cr
-				Case 32,13,9
-					opts:TList=options()
-					If opts.count()=1
-						opt$=String(opts.first())
-						If opt[..2]<>"??" And opt<>"<nothing>"
-							in=opt
-						EndIf
-					EndIf
-					
-					caught=parse()
-					If caught
-						If in<>""
-							addword(in)
-						EndIf
-						If (cr=9 Or cr=13)' And stacks.count()=1
-							in=""
-							opts:TList=options()
-							While opts.count()=1 And String(opts.first())[..2]<>"??"
-								nstacks=New TList
-								in=String(opts.first())
-								addword in
-								parse
-								in=""
-								opts=options()
-							Wend
-							in=""
-						EndIf
-					EndIf
-					in=""
-				Case 8
-				Default
-					If cr>=32
-						in:+Chr(cr)
-					EndIf
-			End Select
-		EndIf
-		
-		ms=MilliSecs()
-		If KeyDown(KEY_BACKSPACE)
-			If ms>nextdelete
-				nextdelete=ms+120
-				If Len(in)
-					in=in[..Len(in)-1]
-				Else
-					stxt$=tstack(stacks.first()).s.txt
-					words=stxt.split(" ")
-					If Len(stxt)
-						words=words[..Len(words)-1]
-						init()
-						For in$=EachIn words[..Len(words)-1]
-							parse()
-							addword(in)
-						Next
-						in=words[Len(words)-1]
-					EndIf
-				EndIf
-			EndIf
-		Else
-			nextdelete=ms
-		EndIf
-		
-		If MouseHit(1)
-			mx=MouseX()
-			my=MouseY()
-			For cl:clickable=EachIn clickables
-				If cl.contains(mx,my)
-					If cl.txt="<nothing>"
-						in=""
-						parse
-					Else
-						words=cl.txt.split(" ")
-						For w$=EachIn words
-							in=w
-							parse
-							addword in
-						Next
-						in=""
-					EndIf
-				EndIf
-			Next
-		EndIf
-		
-		If stacks.count()=0 
-			init
-		EndIf
-		If options().count()=0 And in=""
-			For stack:tstack=EachIn stacks
-				stack.s.txt=prettysentence(stack.s.txt)
-				interpret(stack.s)
-			Next
-			init()
-		EndIf
-
-		If KeyHit(KEY_ESCAPE)
-			If anytext()
-				init
-			ElseIf in
-				in=""
-			Else
-				Select curgrammar.name
-				Case "letter","contractletter"
-					cancelletter
-				Case "menu"
-					changegrammar "main"
-				Case "main"
-					changegrammar "menu"
-				End Select
-			EndIf
-		EndIf
-		
-	End Method
-	EndRem
-	
-	Method anytext()
-		For stack:tstack=EachIn stacks
-			If stack.s.txt Return 1
-		Next
-	End Method
-	
-	Method fill:sentence()
-		init
-		Local o:TList
-		o=options()
-		While o.count()
-			option$=String(picklist(o))
-			'Print option
-			If option[..2]="??"
-				option=game.getinfo(option[2..])
-			EndIf
-			in=option
-			parse
-			addword option
-			in=""
-			o=options()
+			in=in[Len(res)..]
+			res=y.match(in,sn,depth)
 		Wend
-		While tstack(stacks.first()).count()
-			addword String(tstack(stacks.first()).removefirst())
-		Wend
-		Return out()
+		Return o
 	End Method
 	
-	Method out:sentence()
-		Return tstack(stacks.first()).s
+	Method options:TList(in$,depth$="")
+		'print depth+"multisymbol options| "+in
+		Return y.options(in,depth+"  ")
 	End Method
-	
-End Type
-
-Type tstack Extends TList
-	Field s:sentence
-	
-	Method New()
-		s=New sentence
-	End Method
-	
-	Method copy:tstack()
-		stack:tstack=New tstack
-		For o:Object=EachIn Self
-			stack.addlast o
-		Next
-		stack.s=s.copy()
-		Return stack
-	End Method
-End Type
-
-Rem
-Type clickable
-	Field x#,y#,w#,h#
-	Field txt$
-	
-	Method New()
-		clickables.addlast Self
-	End Method
-	
-	Function Create:clickable(txt$,x#,y#,w#,h#)
-		cl:clickable=New clickable
-		cl.txt=txt
-		cl.x=x
-		cl.y=y
-		cl.w=w
-		cl.h=h
-		Return cl
-	End Function
-	
-	Method contains(ix#,iy#)
-		If ix>=x And ix<x+w And iy>+y And iy<y+h
-			Return 1
-		EndIf
-	End Method
-End Type
-EndRem
-
-Type sentence
-	Field txt$
-	Field params:TList
 	
 	Method repr$()
-		Return jsonise().repr()
+		Return y.repr()+"*"
 	End Method
+End Type
+
+Type sentence
+	Field symbol$,txt$
+	Field params:TList
+	Field category$
 	
 	Method New()
 		params=New TList
 	End Method
 	
-	Method jsonise:jsonvalue()
-		Local param$[2]
-		j:jsonobject=New jsonobject
-		j.addnewpair("txt",jsonstringvalue.Create(txt))
-		pj:jsonobject=New jsonobject
-		j.addnewpair("params",pj)
-		For param=EachIn params
-			pj.addnewpair(param[0],jsonstringvalue.Create(param[1]))
-		Next
-		Return j
-	End Method
-	
-	Function Load:sentence(j:jsonobject)
-		s:sentence=New sentence
-		s.txt=j.getstringvalue("txt")
-		pj:jsonobject=j.getobjectvalue("params")
-		Local param$[2]
-		For sp:jsonpair=EachIn pj.pairs
-			symbol$=sp.name
-			in$=jsonstringvalue(sp.value).txt
-			s.addparam(symbol,in)
-		Next
-		Return s
+	Function Create:sentence(symbol$,txt$)
+		sn:sentence=New sentence
+		sn.symbol=symbol
+		sn.txt=txt
+		Return sn
 	End Function
 	
-	Method addparam(symbol$,in$)
-		Local param$[2]
-		'Print "addparam: "+symbol+" , "+in
-		param=[symbol,in]
-		params.addlast param
+	Method addparam(sn:sentence)
+		If Not sn Return
+		params.addlast sn
 	End Method
 	
-	Method addword(in$)
-		If Not in Then Return
-		If in[0]=92
-			txt=txt[..Len(txt)-1]
-			in=in[1..]
+	Method repr$(indent$="")
+		s$=indent
+		If symbol
+			s:+symbol
 		EndIf
-		txt:+in+" "
+		If category
+			s:+" <"+category+"> "
+		EndIf
+		If txt
+			s:+"~q"+txt+"~q"
+		EndIf
+		s:+"("+value()+")"
+		For sn:sentence=EachIn params
+			s:+"~n"+sn.repr(indent+"~t")
+		Next
+		Return s
 	End Method
 	
-	Method nextparam$(remove=1)
-		If Not params.count()
-			Return ""
-		EndIf
-		Local param$[2]
-		If remove
-			param=String[](params.removefirst())
+	Method value$()
+		s$=txt
+		For sn:sentence=EachIn params
+			s:+sn.value()
+		Next
+		Return s
+	End Method
+	
+	Method getparam$(name$)
+		Return getsymbol(name).category
+	End Method
+	
+	Method nextparam$(name$="")
+		If name
+			sn:sentence=getsymbol(name)
 		Else
-			param=String[](params.first())
-		EndIf
-		Return param[1]
-	End Method
-	
-	Method paramsymbol$()
-		Local param$[2]
-		param=String[](params.first())
-		Return param[0]
-	End Method
-	
-	Method copy:sentence()
-		s:sentence=New sentence
-		s.txt=txt
-		s.params=params.copy()
-		Return s
-	End Method
-	
-	Method getparam$(symbol$)
-		Local param$[2]
-		For param=EachIn params
-			If param[0]=symbol
-				Return param[1]
-			EndIf
-		Next
-	End Method
-	
-	Method split:TList(symbol$,in$="")
-		Local param$[2]
-		l:TList=New TList
-		s:sentence=New sentence
-		s.txt=txt
-		param=[symbol,""]
-		s.params.addfirst param
-		par:TList=params.copy()
-		While par.count()
-			param=String[](par.removefirst())
-			If param[0]=symbol And (param[1]=in Or in="")
-				If s.params.count()>1
-					l.addlast s
-				EndIf
-				s:sentence=New sentence
-				s.txt=txt
-			Else
-			EndIf
-			s.params.addlast param
-		Wend
-		If s.params.count()>1
-			l.addlast s
-		EndIf
-		Return l
-	End Method
-	
-	Function join:sentence(l:TList)
-		s:sentence=New sentence
-		For os:sentence=EachIn l
-			s.txt=os.txt
-			Local param$[2]
-			For param=EachIn os.params
-				s.params.addlast param
+			For sn:sentence=EachIn params
+				If sn.symbol Exit
 			Next
-		Next
-		Return s
-	End Function
-End Type	
-
-
-Type gnfrule
-	Field txt$
-	Field reptxt$
-	Field nxt:TList
-	Field symbol$
+		EndIf
+		If sn
+			params.remove sn
+			Return sn.category
+		EndIf
+	End Method
 		
-	Method New()
+	Method getsymbol:sentence(name$)
+		For sn:sentence=EachIn params
+			If sn.symbol=name Return sn
+		Next
 	End Method
 	
-	Function Create:gnfrule(symbol$,txt$,reptxt$,nxt:TList)
-		gr:gnfrule=New gnfrule
-		gr.symbol=symbol
-		gr.txt=txt
-		gr.reptxt=reptxt
-		gr.nxt=nxt
-		Return gr
-	End Function
-	
-	Method copy:gnfrule()
-		gr:gnfrule=gnfrule.Create(symbol,txt,reptxt,nxt.copy())
-		Return gr
-	End Method
-
-	Method repr$()
-		If txt="" Then Return(symbol+" -> <nothing>")
-		p$=symbol+" -> *"+reptxt+" | "+txt+" "
-		For word$=EachIn nxt
-			p:+word+" "
+	Method symbols:TList()
+		l:TList=New TList
+		For sn:sentence=EachIn params
+			If sn.symbol
+				l.addlast sn
+			EndIf
 		Next
-		
-		Return p
+		Return l
 	End Method
 End Type
 
-Function validinput$(kind$,in$)
-	If Lower(game.getinfo(kind))=Lower(in) Return game.getinfo(kind)
-	Select kind
-	Default
-		Return in
-	End Select
-End Function
 
-Function guesses:TList(kind$)
-	l:TList=New TList
-	Select kind$
-	Default
-		l.addlast "??"+kind
-	End Select
-	l.sort
-	Return l
+Function ltrim$(in$)
+	c=0
+	While c<Len(in) And in[c]<=32
+		c:+1
+	Wend
+	Return in[c..]
 End Function
 
 Rem
-Function evaluate#(s:sentence)
-	l:TList=s.split("conjunction","or")
-	If l.count()=1
-		l=s.split("conjunction","and")
-		If l.count()>1
-			go=1
-			For s:sentence=EachIn l
-				s.nextparam
-				go:*evaluate(s)
-			Next
-			Return go
-		EndIf
-	Else
-		go=0
-		For s:sentence=EachIn l
-			s.nextparam
-			go:+evaluate(s)
-		Next
-		Return go
-	EndIf
+For path$=EachIn crawldir("grammars")
+	g:grammar=New grammar
+	g.addfile path
+
+	SeedRnd MilliSecs()
+	For c=1 To 5
+		Print g.fill()
+	Next
+Next
+'EndRem
+
+grammars=New tmap
+g:grammar=grammar.fromfile("grammars/debate.txt")
 	
-	expression$=s.nextparam()
-	Select expression
-	Case "morethan"
-		num1#=resolveamount(s.nextparam())
-		num2#=resolveamount(s.nextparam())
-		If num1>num2 
-			Return 1
-		Else
-			Return 0
-		EndIf
-	Case "lessthan"
-		num1#=resolveamount(s.nextparam())
-		num2#=resolveamount(s.nextparam())
-		If num1<num2 
-			Return 1
-		Else
-			Return 0
-		EndIf
-	Case "equalto"
-		num1#=resolveamount(s.nextparam())
-		num2#=resolveamount(s.nextparam())
-		If num1=num2 
-			Return 1
-		Else
-			Return 0
-		EndIf
-	End Select
-End Function
-EndRem
-
-Rem
-Function clue$(w$)
-	Select w
-	Case "product"
-		Return "the name of a product"
-	Case "pluralnumber"
-		Return "a number"
-	Case "number"
-		Return "a number"
-	Case "percentage"
-		Return "a percentage"
-	Case "money","strictmoney"
-		Return "an amount of money"
-	Case "name"
-		Return "a name"
-	Case "merchant","mymerchant"
-		Return "the name of a merchant"
-	Case "employee"
-		Return "one of your agents"
-	Case "port"
-		Return "the name of a port"
-	Case "output"
-		Return "a product which can be made in a factory"
-	Case "day"
-		Return "a day number"
-	Case "month"
-		Return "a month of the year"
-	End Select
-End Function
-
-	
-
-Function validinput$(kind$,in$,strictmatch=1)
-	Select kind
-	Case "number"
-		For i=0 To Len(in)-1
-			c=in[i]
-			If c<>46 And (c<48 Or c>57)
-				Return ""
-			EndIf
-		Next
-		Return in
-	Case "pluralnumber"
-		If validinput("number",in)
-			If Float(in)>1
-				Return in
-			EndIf
-		EndIf
-		Return ""
-	Case "money","strictmoney"
-		If in="" Then Return ""
-		If in[0]=36
-			If Len(in)=1 Then Return in
-			numvalid$=validinput("number",in[1..])
-			If numvalid
-				Return moneystring(Float(numvalid))
-			Else
-				Return ""
-			EndIf
-		ElseIf kind="strictmoney"
-			Return ""
-		EndIf
-		numvalid$=validinput("number",in)
-		If numvalid
-			Return moneystring(Float(numvalid))
-		Else
-			Return ""
-		EndIf
-		
-	Case "percentage"
-		If in="" Then Return in
-		If in[Len(in)-1]<>37
-			If Not strictmatch
-				Return validinput("number",in)
-			Else
-				Return ""
-			EndIf
-		EndIf
-		Return validinput("number" , in[..Len(in) - 1]) + "%"
-	Case "day"
-		c = 0
-		While c < Len(in) And in[c] >= 48 And in[c] <= 57 
-			c:+ 1
+While 1
+	in$=Input(">")
+	sn:sentence=g.match(in)
+	If sn
+		Print "match"
+		Print sn.category
+		While sn.params.count()
+			Print sn.nextparam()
 		Wend
-		num = Int(in[..c]) 
-		If ordinal(num)[..Len(in)]=in
-			Return ordinal(num)
-		Else
-			Return ""
-		EndIf
-	Case "month"
-		For i = 0 To 11
-			If monthname[i] = in Return in
+		For sn2:sentence=EachIn sn.symbols()
+			Print sn2.repr()
 		Next
-		Return ""
-	Case "name"
-		Return in
-	Default
-		Return in
-	End Select
-End Function
-
-Function cancelletter()
-End Function
-Function changegrammar(g:grammar)
-End Function
-
-
-Include "jsondecoder.bmx"
-Include "lettermaker.bmx"
-Include "globals.bmx"
-Include "helpers.bmx"
-
-Function testinterpret(s:sentence)
-	Print s.repr()
-	command$=s.nextparam()
-	Print command
-	'evaluate(s)
-End Function
-
-gwidth=400
-gheight=800
-scrollerwidth=gwidth
-scrollerheight=gheight
-Graphics gwidth,gheight,0
-SetClsColor 255,255,255
-Global testgrammar:grammar=grammar.fromfile(ReadFile("testgrammar.txt"))
-testgrammar.interpret=testinterpret
-testgrammar.init
-While Not (KeyHit(KEY_ESCAPE) Or AppTerminate())
-	testgrammar.update
-	
-	testgrammar.draw(0,0)
-	
-
-	Flip
-	Cls
+	Else
+		Print "no match"
+		Print "options:"
+		For option$=EachIn g.options(in)
+			Print " "+option
+		Next
+	EndIf
 Wend
 EndRem
 

@@ -1,60 +1,60 @@
-$ *joke Here's a joke: ?joke
+$ :: joke :: Here's a joke: ~joke~;
 
-joke Why did the ?animal ?animalaction ?animalreason
+joke :: Why did the ~animal~ ~animalaction~ ~animalreason~;
 
-animal chicken
-animal cow
-animal pig
-animal duck
+animal :: chicken;
+animal :: cow;
+animal :: pig;
+animal :: duck;
 
-animalaction cross the road?
-animalreason Because it was QUACKERS!!!
-animalaction cross itself?
-animalreason I have MOO idea!!!
-animalaction leave the barnyard?
-animalreason Because it needed some OINKMENT!!!
-animalaction stay indoors?
-animalreason Because it was CHICKEN!!!
+animalaction :: cross the road?;
+animalreason :: Because it was QUACKERS!!!;
+animalaction :: cross itself?;
+animalreason :: I have MOO idea!!!;
+animalaction :: leave the barnyard?;
+animalreason :: Because it needed some OINKMENT!!!;
+animalaction :: stay indoors?;
+animalreason :: Because it was CHICKEN!!!;
 
-$ *fact Did you know that ?fact \?
+$ :: fact :: Did you know that ~fact~?;
 
-fact *faraway in ?faraway they ?tradition
+fact :: faraway :: in ~faraway~ they ~tradition~;
 
-faraway the Orient
-faraway India
-faraway the Levant
-faraway the West Indies
+faraway :: the Orient;
+faraway :: India;
+faraway :: the Levant;
+faraway :: the West Indies;
 
-tradition eat ?oddfood ?foodtime
-oddfood raw fish
-oddfood poisonous spiders 
-oddfood tiny little pigs with whiskers
-oddfood exclusively vegetables
-oddfood just one grain of rice
-foodtime every day
-foodtime on special occasions
-foodtime on holy days
-foodtime to make themselves strong
+tradition :: eat ~oddfood~ ~foodtime~;
+oddfood :: raw fish;
+oddfood :: poisonous spiders ;
+oddfood :: tiny little pigs with whiskers;
+oddfood :: exclusively vegetables;
+oddfood :: just one grain of rice;
+foodtime :: every day;
+foodtime :: on special occasions;
+foodtime :: on holy days;
+foodtime :: to make themselves strong;
 
-tradition believe that ?belief
-belief the world was created by ?deity
-deity a six-headed ?animal
-deity a band of minstrels
-deity the chance formation of everything at once
-deity a ?deityadjective ?geologicalfeature god
-deityadjective wrathful
-deityadjective mysterious
-deityadjective powerful
-geologicalfeature mountain
-geologicalfeature volcano
-geologicalfeature river
-geologicalfeature ocean
+tradition :: believe that ~belief~;
+belief :: the world was created by ~deity~;
+deity :: a six-headed ~animal~;
+deity :: a band of minstrels;
+deity :: the chance formation of everything at once;
+deity :: a ~deityadjective~ ~geologicalfeature~ god;
+deityadjective :: wrathful;
+deityadjective :: mysterious;
+deityadjective :: powerful;
+geologicalfeature :: mountain;
+geologicalfeature :: volcano;
+geologicalfeature :: river;
+geologicalfeature :: ocean;
 
-belief there are only ?onlynumber ?onlything in the world
-onlynumber three
-onlynumber four
-onlynumber fourteen
-onlything fish
-onlything colours
-onlything jokes
-onlything ways of parting your hair
+belief :: there are only ~onlynumber~ ~onlything~ in the world;
+onlynumber :: three;
+onlynumber :: four;
+onlynumber :: fourteen;
+onlything :: fish;
+onlything :: colours;
+onlything :: jokes;
+onlything :: ways of parting your hair;

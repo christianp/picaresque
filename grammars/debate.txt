@@ -1,0 +1,21 @@
+$ :: assume :: ~thing~ is ~property~;
+$ :: assume :: Assume ~thing~ is ~property~;
+$ :: assume :: Assume that ~thing~ is ~property~;
+$ :: assume :: Suppose ~thing~ is ~property~;
+$ :: assume :: Suppose that ~thing~ is ~property~;
+
+$ :: oneor :: ~thing~ is either ~property~ or ~property~;
+$ :: twoor :: Either ~thing~ is ~property~ or ~thing~ is ~property~;
+$ :: implies :: If ~thing~ is ~property~ then ~thing~ is ~property~;
+$ :: conclusion :: Hence, ~thing~ is ~property~;
+
+thing :: god :: God;
+thing :: devil :: the Devil;
+thing :: man :: Man;
+thing :: world :: the World;
+
+property :: not :: not ~property~;
+property :: good :: good;
+property :: evil :: evil;
+property :: free :: free;
+property :: perfect :: perfect;

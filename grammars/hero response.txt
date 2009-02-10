@@ -1,89 +1,89 @@
-$ *debate debate
-$ *fight fight
+$ :: debate :: debate;
+$ :: fight :: fight;
 
-$ *opinion That is ?adverb ?opinion
-$ *opinion How ?opinion
-adverb *big perfectly
-adverb *big totally
-adverb *big entirely
-adverb *big completely
-adverb *big strikingly
-adverb *big so
+$ :: opinion :: That is ~adverb~ ~opinion~;
+$ :: opinion :: How ~opinion~;
+adverb :: big :: perfectly;
+adverb :: big :: totally;
+adverb :: big :: entirely;
+adverb :: big :: completely;
+adverb :: big :: strikingly;
+adverb :: big :: so;
 
-adverb *small somewhat
-adverb *small a little
-adverb *small slightly
-adverb *small in a way
+adverb :: small :: somewhat;
+adverb :: small :: a little;
+adverb :: small :: slightly;
+adverb :: small :: in a way;
 
-opinion *good fascinating
-opinion *good interesting
-opinion *good correct
-opinion *good witty
-opinion *good funny
+opinion :: good :: fascinating;
+opinion :: good :: interesting;
+opinion :: good :: correct;
+opinion :: good :: witty;
+opinion :: good :: funny;
 
-opinion *bad uninteresting
-opinion *bad boring
-opinion *bad outrageous
-opinion *bad in bad taste
-opinion *bad wrong
+opinion :: bad :: uninteresting;
+opinion :: bad :: boring;
+opinion :: bad :: outrageous;
+opinion :: bad :: in bad taste;
+opinion :: bad :: wrong;
 
-$ *description Your ?property ?adverb ?adjective
-$ *description You are ?adverb ?adjective
-$ *comparison Your ?property as ?adjective as ?comparison
-$ *comparison You are as ?adjective as ?comparison
+$ :: description :: Your ~property~ ~adverb~ ~adjective~;
+$ :: description :: You are ~adverb~ ~adjective~;
+$ :: comparison :: Your ~property~ as ~adjective~ as ~comparison~;
+$ :: comparison :: You are as ~adjective~ as ~comparison~;
 
-property *bodypart eyes are
-property *bodypart face is
-property *bodypart mouth is
-property *intelligence wit is
-property *intelligence mind is
-
-
-adjective *unique without parallel
-adjective *unique unique
-
-adjective *common common
-adjective *common plebeian
-
-adjective *sharp sharp
-adjective *soft soft
-
-adjective *clever witty
-adjective *clever clever
-
-adjective *stupid dull
-adjective *stupid dumb
-adjective *stupid stupid
-
-adjective *beauty beautiful
-adjective *beauty handsome
-adjective *beauty clear
-
-adjective *ugly repulsive
-adjective *ugly ugly
-adjective *ugly foul
-adjective *ugly unpleasant
+property :: bodypart :: eyes are;
+property :: bodypart :: face is;
+property :: bodypart :: mouth is;
+property :: intelligence :: wit is;
+property :: intelligence :: mind is;
 
 
-comparison *unique the stars in the sky
+adjective :: unique :: without parallel;
+adjective :: unique :: unique;
 
-comparison *common muck
-comparison *common thieves
+adjective :: common :: common;
+adjective :: common :: plebeian;
 
-comparison *sharp a rapier's tip
-comparison *sharp the barber's blade
+adjective :: sharp :: sharp;
+adjective :: soft :: soft;
 
-comparison *soft a lump of clay
-comparison *soft sheep's wool
+adjective :: clever :: witty;
+adjective :: clever :: clever;
 
-comparison *clever the wisest scholar
-comparison *clever the quickest courtier
+adjective :: stupid :: dull;
+adjective :: stupid :: dumb;
+adjective :: stupid :: stupid;
 
-comparison *stupid the village idiot
-comparison *stupid a sheep
+adjective :: beauty :: beautiful;
+adjective :: beauty :: handsome;
+adjective :: beauty :: clear;
 
-comparison *beauty any I have seen
+adjective :: ugly :: repulsive;
+adjective :: ugly :: ugly;
+adjective :: ugly :: foul;
+adjective :: ugly :: unpleasant;
 
-comparison *ugly the fishmonger's wife
-comparison *ugly a trout
-comparison *ugly a pile of manure
+
+comparison :: unique :: the stars in the sky;
+
+comparison :: common :: muck;
+comparison :: common :: thieves;
+
+comparison :: sharp :: a rapier's tip;
+comparison :: sharp :: the barber's blade;
+
+comparison :: soft :: a lump of clay;
+comparison :: soft :: sheep's wool;
+
+comparison :: clever :: the wisest scholar;
+comparison :: clever :: the quickest courtier;
+
+comparison :: stupid :: the village idiot;
+comparison :: stupid :: a sheep;
+
+comparison :: beauty :: any I have seen;
+
+comparison :: ugly :: the fishmonger's wife;
+comparison :: ugly :: a trout;
+comparison :: ugly :: a pile of manure;
