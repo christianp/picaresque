@@ -1,0 +1,13 @@
+$ :: font :: font ~fonttype~;
+fonttype :: headline :: headline;
+fonttype :: print :: print;
+fonttype :: handwriting :: handwriting;
+$ :: align :: align ~aligntype~;
+aligntype :: left :: left;
+aligntype :: centre :: centre;
+aligntype :: right :: right;
+$ :: column :: column ~number~ ~number~ ~number~;
+$ :: column :: column ~number~ ~number~;
+$ :: size :: size ~number~;
+$ :: rule :: rule ~number~;
+$ :: endcolumn :: endcolumn ~number~;

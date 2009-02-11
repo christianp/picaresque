@@ -7,6 +7,7 @@ Include "db.bmx"
 Include "debate.bmx"
 Include "logic.bmx"
 Include "convo.bmx"
+Include "gfx.bmx"
 
 
 Global world:db,templates:db
@@ -23,6 +24,8 @@ Type tgame
 	'INIT GAME STUFF
 	
 	Method New()
+		AppTitle="Picaresque!"
+		initgfx 960,600
 		SeedRnd MilliSecs()
 		grammar.loadall
 		world=db.dirload("world")
@@ -128,6 +131,9 @@ Type tgame
 	
 	Method draw()
 		curmode.draw
+		
+		Flip
+		Cls
 	End Method
 	
 	
@@ -198,11 +204,17 @@ Type narration Extends gamemode
 	End Function
 	
 	Method update()
-		Print text
-		status=1
+		If GetChar()
+			status=1
+		EndIf
 	End Method
 	
 	Method draw()
+		y=0
+'		For line$=EachIn fittext(text,gfxwidth-100)
+'			DrawText line,50,y
+'			y:+TextHeight(line)
+'		Next
 	End Method
 End Type
 
@@ -240,4 +252,5 @@ game.init
 Repeat
 	game.update
 	game.draw
+	If AppTerminate() end
 Forever

@@ -109,6 +109,9 @@ Type grammar
 	
 	Method findsymbol:gsymbol(name$)
 		name=Lower(name)
+		If specialsymbols.contains(name)
+			Return gsymbol(specialsymbols.valueforkey(name))
+		EndIf
 		If symbols.contains(name)
 			Return gsymbol(symbols.valueforkey(name))
 		Else
@@ -151,8 +154,6 @@ End Type
 Type grule
 	
 	Method match$(in$,sn:sentence,depth$="") Abstract
-	
-	Method repr$() Abstract
 	
 	Method options:TList(in$,depth$="") Abstract
 End Type
@@ -205,14 +206,6 @@ Type gseries Extends grule
 		Next
 		Return New TList
 	End Method
-	
-	Method repr$()
-		s$=""
-		For r:grule=EachIn bits
-			s:+r.repr()
-		Next
-		Return s
-	End Method
 End Type
 
 Type gtext Extends grule
@@ -258,10 +251,6 @@ Type gtext Extends grule
 		EndIf
 		Return l
 	End Method
-	
-	Method repr$()
-		Return "~q"+txt+"~q"
-	End Method
 End Type
 
 Type gsymbol Extends grule
@@ -285,7 +274,7 @@ Type gsymbol Extends grule
 	Method match$(in$,sn:sentence,depth$="")
 		'print depth+"symbol match ("+name+")| "+in
 
-		info$=game.getinfo(name)
+		'info$=game.getinfo(name)
 		If info
 			Return gtext.Create(info).match(in,sn,depth+"  ")
 		EndIf
@@ -317,11 +306,11 @@ Type gsymbol Extends grule
 	Method options:TList(in$,depth$="")
 		'print depth+"symbol options <"+name+">| "+in
 		l:TList=New TList
-		info$=game.getinfo(name)
+		'info$=game.getinfo(name)
 		If info
 			For txt$=EachIn gtext.Create(info).options(in,depth+"  ")
 				l.addlast txt
-			next
+			Next
 		EndIf
 		For r:grule=EachIn rules
 			For txt$=EachIn r.options(in,depth+"  ")
@@ -329,15 +318,6 @@ Type gsymbol Extends grule
 			Next
 		Next
 		Return l
-	End Method
-	
-	Method repr$()
-		s$=""
-		For r:grule=EachIn rules
-			If s s:+"|"
-			s:+r.repr()
-		Next
-		Return "("+s+")"
 	End Method
 End Type
 
@@ -374,11 +354,69 @@ Type gmultisymbol Extends grule
 		'print depth+"multisymbol options| "+in
 		Return y.options(in,depth+"  ")
 	End Method
+End Type
+
+Type gspecialsymbol Extends gsymbol
+	Field mymatch$(in$,sn:sentence,depth$)
+	Field myoptions:TList(in$,depth$)
+		
+	Method match$(in$,sn:sentence,depth$="")
+		Return mymatch(in,sn,depth)
+	End Method
 	
-	Method repr$()
-		Return y.repr()+"*"
+	Method options:TList(in$,depth$="")
+		Return myoptions(in,depth)
 	End Method
 End Type
+
+Function numbermatch$(in$,sn:sentence,depth$="")
+	If in[0]=Asc("-")
+		res$=numbermatch(in[1..],New sentence,depth+"  ")
+		If res
+			res="-"+res
+			sn.addparam sentence.Create("number",res,res)
+			Return res
+		EndIf
+	Else
+		c=0
+		While c<Len(in)
+			If in[c]<>46 And (in[c]<48 Or in[c]>57)	'non-number character
+				If c	'already had some numbers
+					sn.addparam sentence.Create("number",in[..c],in[..c])
+					Return in[..c]
+				Else
+					Return ""
+				EndIf
+			Else
+				c:+1
+			EndIf
+		Wend
+		sn.addparam sentence.Create("number",in,in)
+		Return in
+	EndIf
+End Function
+
+Function numberoptions:TList(in$,depth$="")
+	l:TList=New TList
+	For c=0 To Len(in)-1
+		If in[c]<>46 And (in[c]<48 Or in[c]>57)
+			Return l
+		EndIf
+	Next
+	If Not in.contains(".") 
+		l.addlast "."
+	EndIf
+	For c=0 To 9
+		l.addlast String(c)
+	Next
+	Return l
+End Function
+
+Global specialsymbols:tmap=New tmap
+numsymbol:gspecialsymbol=New gspecialsymbol
+numsymbol.mymatch=numbermatch
+numsymbol.myoptions=numberoptions
+specialsymbols.insert "number",numsymbol
 
 Type sentence
 	Field symbol$,txt$
@@ -389,10 +427,11 @@ Type sentence
 		params=New TList
 	End Method
 	
-	Function Create:sentence(symbol$,txt$)
+	Function Create:sentence(symbol$,txt$,category$="")
 		sn:sentence=New sentence
 		sn.symbol=symbol
 		sn.txt=txt
+		sn.category=category
 		Return sn
 	End Function
 	
@@ -428,7 +467,10 @@ Type sentence
 	End Method
 	
 	Method getparam$(name$)
-		Return getsymbol(name).category
+		sn:sentence=getsymbol(name)
+		If sn
+			Return sn.category
+		EndIf
 	End Method
 	
 	Method nextparam$(name$="")
@@ -471,6 +513,51 @@ Function ltrim$(in$)
 	Return in[c..]
 End Function
 
+
+Type ginput
+	Field g:grammar
+	Field options:TList
+	Field in$
+	Field out:sentence
+	
+	Function Create:ginput(g:grammar)
+		gi:ginput=New ginput
+		gi.g=g
+	End Function
+	
+	Method update()
+		options:TList=g.options(in)
+		c=GetChar()
+		Select c
+		Case 8	'backspace
+			If Len(in) in=in[..Len(in)-1]
+		Case 9	'tab
+			If options.count()=1
+				in:+String(options.first())
+			EndIf
+		Case 13	'return
+			out=g.match(in)
+		Default
+			in:+Chr(c)
+		End Select
+	End Method
+	
+	Method draw()
+		y=0
+'		For line$=EachIn fittext(in,400)
+'			DrawText line,0,y
+'			y:+TextHeight(line)
+'		Next
+		x=TextWidth(in)
+		For option$=EachIn options
+			DrawText option,x,y
+			y:+TextHeight(option)
+		Next
+	End Method
+End Type
+
+
+
 Rem
 For path$=EachIn crawldir("grammars")
 	g:grammar=New grammar
@@ -484,13 +571,14 @@ Next
 'EndRem
 
 grammars=New tmap
-g:grammar=grammar.fromfile("grammars/debate.txt")
+g:grammar=grammar.fromfile("testgrammar.txt")
 	
 While 1
 	in$=Input(">")
 	sn:sentence=g.match(in)
 	If sn
 		Print "match"
+		Print sn.repr()
 		Print sn.category
 		While sn.params.count()
 			Print sn.nextparam()
