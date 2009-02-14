@@ -1,2 +1,2 @@
 $ :: darling :: I'm looking for ~darling~. Have you seen her?;
-$ :: darling :: Tell me where ~darling~ is;
+$ :: darling :: Tell me where ~darling~ is.;

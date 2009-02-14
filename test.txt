@@ -42,7 +42,7 @@ Jacqui Smith says the removal of the reservation shows the government's "commitm
 
 Human rights also require respect for each person's human dignity and fair treatment. Current policy fails these tests.^ endcolumn 0^
 a line of text which has not much to do with anything.
-It is entirely possible that ^ size 60^ big is better but ^size 100^ how much better?
+It is entirely possible that ^ size 60^ big is better but ^size 100^how much better?
 ^ font handwriting, size 60 ^Monday, 15th December 1500
 Dear Jim,
 	Hello there. How are you? I have been told by my close associates that there are plans afoot to behead the Queen.

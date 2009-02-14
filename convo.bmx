@@ -1,32 +1,36 @@
 Type convo Extends gamemode
 	Field success#
 	Field g:grammar
+	Field gi:ginput
+	Field box:textbox
 	Field agreeability#
 	
 	Method New()
-		g=grammar.find("hero question")
+		changegrammar "hero question"
 		agreeability=Rnd(0,1)
 		debugo "agreeability: "+agreeability
+		box=textbox.Create(0,gfxheight/2,gfxwidth,gfxheight/2)
 	End Method
 	
 	Method update()
-		in$=Input(">")
-		say in
-		If in="quit" status=1
+		gi.update
+		If gi.out
+			say gi.out
+		EndIf
+		
+		box.update
+		
+		'debug
+		If gi.txt="quit" status=1
 	End Method
 	
-	Method say(in$)	
-		debugo g.name
-		'g.init
-		'For word$=EachIn in.split(" ")
-		'	g.in=word
-		'	g.parse()
-		'	
-		'	g.addword word
-		'Next
-		's:sentence=g.out()
-		'Print s.repr()
-		s:sentence=g.match(in)
+	Method changegrammar(name$)
+		g=grammar.find(name)
+		gi=ginput.Create(g)
+	End Method
+		
+	Method say(s:sentence)
+		Rem	
 		If Not s
 			debugo "not valid sentence"
 			For op$=EachIn g.options(in)
@@ -35,6 +39,11 @@ Type convo Extends gamemode
 			respond "what"
 			Return
 		EndIf
+		EndRem
+		Print s.repr()
+		
+		box.addtext s.value(),.5
+		
 		Select s.category 'what kind of thing did the player say?
 		Case "darling" 'question about darling
 			respond "darling"
@@ -104,10 +113,11 @@ Type convo Extends gamemode
 		'DebugStop
 		response$=rg.fill()
 		Print response
+		box.addtext "^ align right ^"+response,.5
 		
 		Select kind
 		Case "anecdote"
-			g=grammar.find("hero response")
+			changegrammar "hero response"
 		Case "fight"
 			status=2
 		Case "debate"
@@ -129,6 +139,8 @@ Type convo Extends gamemode
 	End Method	
 	
 	Method draw()
+		gi.draw
+		box.draw
 	End Method
 End Type
 

@@ -1,9 +1,10 @@
-Import "jsondecoder.bmx"
-Include "gfx.bmx"
-Include "grammar.bmx"
-Include "helpers.bmx"
+'Include "gfx.bmx"
+'Include "grammar.bmx"
+'Include "helpers.bmx"
 
 'lettermaker
+
+Rem
 Global handwritingfonts:timagefont[]
 Global printfonts:timagefont[]
 Global headlinefonts:timagefont[]
@@ -12,20 +13,56 @@ Global textstarts:tmap
 Global allfonts:tmap
 Global typetemplates:tmap
 Global dfonts:tmap
+EndRem
+
+Global handwritingfonts:wfont[]
+Global printfonts:wfont[]
+Global headlinefonts:wfont[]
+Global allfonts:tmap
+Global dfonts:tmap
 
 
+Function loadfonts()
+	allfonts=New tmap
+	printfonts=loadfontset("print")
+	handwritingfonts=loadfontset("handwriting")
+	headlinefonts=loadfontset("headline")
 
-Function loadtxt$(filename$)
-	f:TStream=ReadFile(filename)
-	txt$=""
-	While Not Eof(f)
-		txt:+f.ReadString(1000)
+	dfonts:tmap=New tmap
+	dfonts.insert "handwriting",handwritingfonts[0]
+	dfonts.insert "print",printfonts[0]
+	dfonts.insert "headline",headlinefonts[0]
+	
+	dfonts=pickfonts()
+End Function
+
+Function loadfontset:wfont[](kind$)
+	Local lines$[]=loadtxt("fonts/"+kind+" fonts.txt").split("~n")
+	Local wfonts:wfont[Len(lines)/3]
+	i=0
+	m:tmap=New tmap
+	While i<Len(lines)
+		fname$=Trim(lines[i])
+		h#=Float(lines[i+1])
+		jiggle#=Float(lines[i+2])
+		wf:wfont=wfont.Create("fonts/"+fname,h,jiggle,0)
+		allfonts.insert fname,wf
+		wfonts[i/3]=wf
+		i:+3
 	Wend
-	CloseFile(f)
-	Return txt
+	Return wfonts
+End Function
+
+Function pickfonts:tmap()
+	fonts:tmap=New tmap
+	fonts.insert "handwriting",handwritingfonts[Rand(Len(handwritingfonts)-1)]
+	fonts.insert "print",printfonts[Rand(Len(printfonts)-1)]
+	fonts.insert "headline",headlinefonts[Rand(Len(headlinefonts)-1)]
+	Return fonts
 End Function
 
 
+Rem
 Function loadfonts()
 	textheights=New tmap
 	textstarts=New tmap
@@ -86,14 +123,8 @@ Function loadfontset:timagefont[](j:jsonobject,kind$,setheights=0)
 	Return timagefont[](l.toarray())
 End Function
 
+EndRem
 
-Function pickfonts:tmap()
-	fonts:tmap=New tmap
-	fonts.insert "handwriting",handwritingfonts[Rand(Len(handwritingfonts)-1)]
-	fonts.insert "print",printfonts[Rand(Len(printfonts)-1)]
-	fonts.insert "headline",headlinefonts[Rand(Len(headlinefonts)-1)]
-	Return fonts
-End Function
 
 Type typecolumn
 	Field width#
@@ -119,7 +150,7 @@ Type textblock
 	Field i,x#,y#
 	Field curchr$
 	Field fonts:tmap
-	Field curfont:timagefont
+	Field curfont:wfont
 	Field scale#,ascale#
 	Field curtl:typeline
 	Field justify
@@ -132,6 +163,7 @@ Type textblock
 		tb.fonts=fonts
 		tb.ascale=ascale
 		tb.width=width
+		tb.render
 		Return tb
 	End Function
 	
@@ -210,6 +242,7 @@ Type textblock
 		Wend
 	End Method
 
+	Rem
 	Method rendertxt(in$)
 		'Print in
 		SetImageFont curfont
@@ -223,7 +256,7 @@ Type textblock
 		For li=0 To Len(txtlines)-1
 			line$=txtlines[li]
 			'Print "---"+line+"----~q"+lastline+"~q"
-			If line="" And li>0 'And lastline="" 
+			If Trim(line)="" And li>0 'And lastline="" 
 				newline
 				curtl.height=10*ascale
 				newline
@@ -236,6 +269,48 @@ Type textblock
 					word=Replace(word,"~t","    ")
 					word:+" "
 					twidth#=TextWidth(word)*scale
+					If x+twidth>curcolumn.width+curcolumn.x
+						newline
+					EndIf
+					curtl.addelement(typetxt.Create(word,curfont,scale,x))
+					If curtl.height+curtl.y>curcolumn.y+curcolumn.height And curcolumn.height>0
+						columnwrap
+					EndIf
+					x:+twidth
+				EndIf
+			Next
+			If li<Len(txtlines)-1
+				'newline
+			EndIf
+			lastline$=line
+		Next
+		'newline
+	End Method
+	EndRem
+
+	Method rendertxt(in$)
+		'Print in
+		Local txtlines$[]
+		txtlines=in.split("~n")
+		oline$=""
+
+		lastline$=""
+		For li=0 To Len(txtlines)-1
+			line$=txtlines[li]
+			'Print "---"+line+"----~q"+lastline+"~q"
+			If Trim(line)="" And li>0 'And lastline="" 
+				newline
+				curtl.height=10*ascale
+				newline
+				'y:+clevertextheight("",curfont)*scale
+			EndIf
+			Local words$[]
+			words=line.split(" ")
+			For word$=EachIn words
+				If word.Trim()<>""
+					word=Replace(word,"~t","    ")
+					word:+" "
+					twidth#=curfont.width(word,scale*50)
 					If x+twidth>curcolumn.width+curcolumn.x
 						newline
 					EndIf
@@ -281,14 +356,14 @@ Type textblock
 		
 	Method setfont(fname$)
 		If fonts.contains(fname)
-			curfont=timagefont(fonts.valueforkey(fname))
+			curfont=wfont(fonts.valueforkey(fname))
 		ElseIf allfonts.contains(fname)
-			curfont=timagefont(allfonts.valueforkey(fname))
+			curfont=wfont(allfonts.valueforkey(fname))
 		EndIf
 	End Method
 	
 	Method domarkup(in$)
-		Print in
+		'Print in
 		Global g:grammar=grammar.fromfile("testgrammar.txt")
 		For cmd$=EachIn in.split(",")
 			sn:sentence=g.match(Trim(cmd))
@@ -323,7 +398,7 @@ Type textblock
 	End Method
 	
 	Method newrule(size#)
-		Print "rule "+size
+		'Print "rule "+size
 		twidth#=curcolumn.width
 		length#=twidth*size*.01
 		newline
@@ -335,12 +410,12 @@ Type textblock
 	End Method
 	
 	Method setsize(size#)
-		Print "size "+size
+		'Print "size "+size
 		scale=ascale*size/100.0
 	End Method
 	
 	Method alignto(align$)
-		Print "align "+align
+		'Print "align "+align
 		Select align
 		Case "left"
 			justify=-1
@@ -353,7 +428,7 @@ Type textblock
 	End Method	
 	
 	Method newcolumn(number,width#,height#)
-		Print "column "+number+" "+width+" "+height
+		'Print "column "+number+" "+width+" "+height
 		If width
 			twidth#=curcolumn.width*width*.01
 		Else
@@ -375,7 +450,7 @@ Type textblock
 	End Method
 	
 	Method endcolumn(number)
-		Print "endcolumn "+number
+		'Print "endcolumn "+number
 		If number=0
 			owidth#=curcolumn.width
 			'Print owidth
@@ -406,99 +481,16 @@ Type textblock
 		EndIf
 	End Method
 	
-	Rem
-	Method domarkup(in$)
-		in="{ "+in+" }"
-		'Print in
-		jd:jsondecoder=jsondecoder.Create(in)
-		jd.parse()
-		j:jsonobject=jsonobject(jd.things.first())
-		For jp:jsonpair=EachIn j.pairs
-			Select jp.name
-			Case "rule"
-				twidth#=curcolumn.width'+14*ascale
-				length#=twidth*j.getnumbervalue("rule")*.01
-				newline
-				curtl.justify=0
-				rx=curcolumn.x+twidth/2-length/2
-				tr:typerule=typerule.Create(curcolumn.x,length,2*ascale,20*ascale)
-				curtl.addelement tr
-				newline
-			Case "font"
-				fname$=j.getstringvalue("font")
-				setfont(fname)
-			Case "size"
-				scale=ascale*j.getnumbervalue("size")/100.0
-			Case "align"
-				align$=j.getstringvalue("align")
-				Select align
-				Case "left"
-					justify=-1
-				Case "centre"
-					justify=0
-				Case "right"
-					justify=1
-				End Select
-				curtl.justify=justify
-			Case "column"
-				co:jsonobject=j.getobjectvalue("column")
-				number=co.getnumbervalue("number")
-				height#=co.getnumbervalue("height")
-				If co.getvalue("width")
-					twidth#=curcolumn.width*co.getnumbervalue("width")*.01
-				Else
-					twidth#=curcolumn.width
-				EndIf
-				If height>0
-					height:*ascale
-				EndIf
-				cwidth#=twidth/number
-				x=curcolumn.x+curcolumn.width/2+twidth/2
-				'If height>0
-					columnstack.addlast typecolumn.Create(curcolumn.x,y+height,curcolumn.width,curcolumn.height-y-height)
-				'EndIf
-				For c=1 To number
-					x:-cwidth
-					columnstack.addlast typecolumn.Create(x,y,cwidth-10*ascale,height)
-				Next
-				popcolumn
-			Case "endcolumn"
-				number=j.getnumbervalue("endcolumn")
-				If number=0
-					owidth#=curcolumn.width
-					'Print owidth
-					oy=y+curtl.height*1.5
-					While curcolumn.width=owidth And columnstack.count()
-						y=curcolumn.maxy
-						popcolumn
-						'Print String(curcolumn.width)+"  "+String(columnstack.count())
-					Wend
-				Else
-					'Print "OMAXY "+String(curcolumn.maxy)
-					owidth#=curcolumn.width
-					ocolumn:typecolumn=curcolumn
-					For c=1 To number
-						If columnstack.count()
-							popcolumn
-							'If curcolumn.width=ocolumn.width
-								curcolumn.maxy=ocolumn.maxy
-							'EndIf
-						EndIf
-					Next
-				EndIf
-				If curcolumn.y<curcolumn.maxy And curcolumn.width<>owidth
-					curcolumn.y=curcolumn.maxy
-					y=curcolumn.maxy
-					curtl.y=y
-					curtl.x=curcolumn.x
-				EndIf
-				'Print "MAXY "+String(curcolumn.maxy)+","+String(curcolumn.y)
-			End Select
+	Method draw(offx=0,offy=0)
+		SetBlend ALPHABLEND
+		For tl:typeline=EachIn typelines
+			tl.draw offx,offy
 		Next
 	End Method
-	EndRem
+	
 End Type
 
+Rem
 Function fittext:TList(txt$,width#)
 	width:-50
 	flines:TList=New TList
@@ -521,6 +513,7 @@ Function fittext:TList(txt$,width#)
 	
 	Return flines
 End Function
+EndRem
 
 Type typeelement
 	Field x#
@@ -528,9 +521,6 @@ Type typeelement
 	
 	Method draw(dx#,dy#)
 	
-	End Method
-	
-	Method drawzoom(dx#,dy#)
 	End Method
 	
 	Method height#()
@@ -541,16 +531,15 @@ End Type
 
 Type typetxt Extends typeelement
 	Field txt$
-	Field font:timagefont
-	Field scale#
+	Field font:wfont
+	Field size#
 	Field jiggle#
 	
-	Function Create:typetxt(txt$,font:timagefont,scale#,x#,r=0,g=0,b=0)
+	Function Create:typetxt(txt$,font:wfont,scale#,x#,r=0,g=0,b=0)
 		tt:typetxt=New typetxt
 		tt.txt=txt
 		tt.font=font
-		tt.jiggle=Float(String(textstarts.valueforkey(font)))
-		tt.scale=scale
+		tt.size=scale*50
 		tt.x=x
 		tt.r=r
 		tt.g=g
@@ -559,6 +548,7 @@ Type typetxt Extends typeelement
 		Return tt
 	End Function
 	
+	Rem
 	Method draw(dx#,dy#)
 		SetImageFont font
 		SetScale scale,scale
@@ -580,7 +570,19 @@ Type typetxt Extends typeelement
 		SetScale scale,scale
 		DrawText txt,ox,oy
 	End Method
+	EndRem
 	
+	Method draw(dx#,dy#)
+		SetColor r,g,b
+		font.draw(txt,dx+x,dy,size)
+		'SetColor 255,255,255
+		'SetScale 1,1
+		'DrawLine dx+x,dy,dx+x+width(),dy
+		'DrawLine 0,0,dx,dy
+		'DrawText width(),dx,dy
+	End Method
+	
+	Rem
 	Method height#()
 		SetImageFont font
 		theight#=clevertextheight(txt)*scale-jiggle*scale
@@ -591,6 +593,14 @@ Type typetxt Extends typeelement
 		SetImageFont font
 		twidth#=TextWidth(txt)*scale
 		Return twidth
+	End Method
+	EndRem
+	
+	Method height#()
+		Return font.height(size)
+	End Method
+	Method width#()
+		Return font.width(txt,size)
 	End Method
 End Type
 
@@ -618,12 +628,14 @@ Type typerule Extends typeelement
 		DrawLine dx+x,dy-myheight,dx+x+length,dy-myheight
 	End Method
 	
+	Rem
 	Method drawzoom(dx#,dy#)
 		SetLineWidth size*zoom
 		SetScale 1,1
 		SetColor r,g,b
 		DrawLine dx+x,dy-myheight,dx+x+length,dy-myheight
 	End Method
+	EndRem
 	
 	Method height#()
 		Return myheight
@@ -688,6 +700,7 @@ Type typeline
 		Next
 	End Method
 	
+	Rem
 	Method drawzoom(xoff#=0,yoff#=0)
 		Select justify
 		Case -1 'left justify
@@ -701,16 +714,69 @@ Type typeline
 			te.drawzoom(xoff+x,yoff+y+height)
 		Next
 	End Method
+	EndRem
 End Type
 
+
+Const wfontinc#=2
+Type wfont
+	Field h#
+	Field jiggle#
+	Field images:timagefont[5]
+	Field scale#
+	
+	Function Create:wfont(fname$,height#,jiggle#,style=SMOOTHFONT)
+		wf:wfont=New wfont
+		wf.h=height
+		wf.jiggle=jiggle
+		wf.makesizes fname,style
+		Return wf
+	End Function
+	
+	Method makesizes(fname$,style)
+		For x=1 To 5
+			images[x-1]=LoadImageFont(fname,wfontinc^(x+2),style)
+		Next
+	End Method
+	
+	Method setfont(size#)
+		i=Int((Log(size)/Log(wfontinc))-2)
+		If i>4 i=4
+		If i<0 i=0
+		SetImageFont images[i]
+		'scale#=size/(wfontinc^(i+3))
+		scale=1
+		SetScale scale,scale
+	End Method
+	
+	Method draw(txt$,x,y,size#)
+		setfont size
+		DrawText txt,x,y-height(size)-jiggle*size
+		SetScale 1,1
+	End Method
+	
+	Method height#(size#)
+		Return h*size
+	End Method
+	
+	Method width#(txt$,size#)
+		setfont size
+		w#=TextWidth(txt)*scale
+		SetScale 1,1
+		Return w
+	End Method
+End Type
+
+Rem
 Function clevertextheight(txt$,tif:timagefont=Null)
 	If Not tif
 		tif:timagefont=GetImageFont()
 	EndIf
 	Return Int(String(textheights.valueforkey(tif)))
 End Function
+EndRem
 
-
+Rem
 grammars=New tmap
 Graphics 800,800,0
 SetBlend ALPHABLEND
@@ -727,17 +793,15 @@ fonts.insert "handwriting",handwritingfonts[Rand(0,Len(handwritingfonts)-1)]
 fonts.insert "print",printfonts[Rand(0,Len(printfonts)-1)]
 fonts.insert "headline",headlinefonts[Rand(0,Len(headlinefonts)-1)]
 txt$=loadtxt("test.txt")
-tb:textblock=textblock.Create(txt,800,.5,fonts)
-tb.render 0
+tb:textblock=textblock.Create(txt,800,.6,fonts)
 While Not KeyHit(KEY_SPACE)
 	DrawLine 0,tb.y,800,tb.y
 	xoff=Rand(-50,50)
 	yoff=Rand(100)
-	For tl:typeline=EachIn tb.typelines
-		tl.draw 'xoff,yoff
-	Next
+	tb.draw
 	Flip
 	Cls
 	If AppTerminate() End
 Wend
 Wend
+EndRem

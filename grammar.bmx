@@ -44,12 +44,7 @@ Type grammar
 	End Function
 	
 	Method addfile(fname$)
-		f:TStream=ReadFile(fname)
-		s$=""
-		While Not Eof(f)
-			s:+f.ReadString(1000)
-		Wend
-		addrules s
+		addrules loadtxt(fname)
 	End Method
 	
 	Method addrule(in$)
@@ -140,6 +135,7 @@ Type grammar
 	End Method
 	
 	Method fill$()
+		Print "FILL"
 		r:grule=findsymbol("$")
 		in$=""
 		l:TList=options(in)
@@ -170,7 +166,7 @@ Type gseries Extends grule
 	End Function
 
 	Method match$(in$,sn:sentence,depth$="")
-		'print depth+"series match| "+in
+		gdebugo depth+"series match| "+in
 		o$=""
 		If category
 			sn.category=category
@@ -189,7 +185,7 @@ Type gseries Extends grule
 	
 	Method options:TList(in$,depth$="")
 		sn:sentence=New sentence
-		'print depth+"series options| "+in
+		gdebugo depth+"series options| "+in
 		For r:grule=EachIn bits
 			res$=r.match(in,sn,depth+"  ")
 			If res
@@ -224,7 +220,7 @@ Type gtext Extends grule
 	End Function
 
 	Method match$(in$,sn:sentence,depth$="")
-		'Print depth+"text match ("+txt+")| '"+in+"'"
+		gdebugo depth+"text match ("+txt+")| '"+in+"'"
 		'Print depth+"in ~q"+Lower(in[0..Len(txt)])+"~q"
 		'Print depth+"txt~q"+Lower(txt)+"~q "+Len(txt)
 		If Len(in)>=Len(txt) And Lower(in[..Len(txt)])=Lower(txt)
@@ -240,7 +236,7 @@ Type gtext Extends grule
 	End Method
 	
 	Method options:TList(in$,depth$="")
-		'print depth+"text options| "+in
+		gdebugo depth+"text options| "+in
 		l:TList=New TList
 		If in
 			If Len(in)<Len(txt) And Lower(txt[..Len(in)])=Lower(in)
@@ -272,11 +268,16 @@ Type gsymbol Extends grule
 	End Method
 	
 	Method match$(in$,sn:sentence,depth$="")
-		'print depth+"symbol match ("+name+")| "+in
+		gdebugo depth+"symbol match ("+name+")| "+in
 
-		'info$=game.getinfo(name)
+		info$=game.getinfo(name)
 		If info
-			Return gtext.Create(info).match(in,sn,depth+"  ")
+			sn2:sentence=New sentence
+			res$=gtext.Create(info).match(in,sn2,depth+"  ")
+			If res
+				sn.addparam sentence.Create(name,info)
+			EndIf
+			Return res
 		EndIf
 		sn2:sentence=sentence.Create(name,"")
 		matches=0
@@ -304,9 +305,9 @@ Type gsymbol Extends grule
 	End Method
 	
 	Method options:TList(in$,depth$="")
-		'print depth+"symbol options <"+name+">| "+in
+		gdebugo depth+"symbol options <"+name+">| "+in
 		l:TList=New TList
-		'info$=game.getinfo(name)
+		info$=game.getinfo(name)
 		If info
 			For txt$=EachIn gtext.Create(info).options(in,depth+"  ")
 				l.addlast txt
@@ -331,7 +332,7 @@ Type gmultisymbol Extends grule
 	End Function
 	
 	Method match$(in$,sn:sentence,depth$="")
-		'print depth+"multisymbol match| "+in
+		gdebugo depth+"multisymbol match| "+in
 		res$=y.match(in,sn,depth)
 		o$=~0
 		While res
@@ -351,7 +352,7 @@ Type gmultisymbol Extends grule
 	End Method
 	
 	Method options:TList(in$,depth$="")
-		'print depth+"multisymbol options| "+in
+		gdebugo depth+"multisymbol options| "+in
 		Return y.options(in,depth+"  ")
 	End Method
 End Type
@@ -514,47 +515,7 @@ Function ltrim$(in$)
 End Function
 
 
-Type ginput
-	Field g:grammar
-	Field options:TList
-	Field in$
-	Field out:sentence
-	
-	Function Create:ginput(g:grammar)
-		gi:ginput=New ginput
-		gi.g=g
-	End Function
-	
-	Method update()
-		options:TList=g.options(in)
-		c=GetChar()
-		Select c
-		Case 8	'backspace
-			If Len(in) in=in[..Len(in)-1]
-		Case 9	'tab
-			If options.count()=1
-				in:+String(options.first())
-			EndIf
-		Case 13	'return
-			out=g.match(in)
-		Default
-			in:+Chr(c)
-		End Select
-	End Method
-	
-	Method draw()
-		y=0
-'		For line$=EachIn fittext(in,400)
-'			DrawText line,0,y
-'			y:+TextHeight(line)
-'		Next
-		x=TextWidth(in)
-		For option$=EachIn options
-			DrawText option,x,y
-			y:+TextHeight(option)
-		Next
-	End Method
-End Type
+
 
 
 
@@ -595,4 +556,12 @@ While 1
 	EndIf
 Wend
 EndRem
+
+
+Global gdebugging=0
+Function gdebugo(txt$)
+	If gdebugging
+		Print txt
+	EndIf
+End Function
 

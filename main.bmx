@@ -8,7 +8,8 @@ Include "debate.bmx"
 Include "logic.bmx"
 Include "convo.bmx"
 Include "gfx.bmx"
-
+Include "typeset.bmx"
+Include "text.bmx"
 
 Global world:db,templates:db
 Global game:tgame
@@ -24,9 +25,14 @@ Type tgame
 	'INIT GAME STUFF
 	
 	Method New()
+		SeedRnd MilliSecs()
+
+		'graphics
 		AppTitle="Picaresque!"
 		initgfx 960,600
-		SeedRnd MilliSecs()
+		loadfonts
+		
+		'world
 		grammar.loadall
 		world=db.dirload("world")
 		templates=db.dirload("templates",1)
@@ -71,6 +77,9 @@ Type tgame
 			t=curlo
 		Case "prvlo"
 			t=prvlo
+		Case "chapter"
+			Print "CHAPTER"
+			Return romannumeral(progress)
 		Default
 			Return ""
 		End Select
@@ -193,6 +202,7 @@ End Type
 Type narration Extends gamemode
 	Field text$
 	Field kind$
+	Field tb:textblock
 	
 	Function Create:narration(kind$)
 		n:narration=New narration
@@ -200,13 +210,15 @@ Type narration Extends gamemode
 
 		temp$=templates.pick(kind)
 		n.text=template.Create(temp).fill()
+		n.tb=textblock.Create(n.text,gfxwidth-60,.5)
 		Return n
 	End Function
 	
 	Method update()
-		If GetChar()
+		If GetChar() Or MouseHit(1) Or MouseHit(2)
 			status=1
 		EndIf
+		SetClsColor 248,236,194
 	End Method
 	
 	Method draw()
@@ -215,6 +227,7 @@ Type narration Extends gamemode
 '			DrawText line,50,y
 '			y:+TextHeight(line)
 '		Next
+		tb.draw 30,(gfxheight-tb.y)/2
 	End Method
 End Type
 
@@ -252,5 +265,5 @@ game.init
 Repeat
 	game.update
 	game.draw
-	If AppTerminate() end
+	If AppTerminate() Or KeyHit(KEY_ESCAPE) End
 Forever

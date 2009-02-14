@@ -1,9 +1,13 @@
 type intro
 
-$hero$
-or, Perfidy and Pastry
+^ align centre, font headline ^$hero$
+
+^size 65 ^or,
+
+^size 100 ^Perfidy and Pastry
 
 
+^align left, font print^
 Once upon a time, in the city of $home$, there lived the son of a butcher, $hero.fullname$.
 It came to pass that in the course of events, $hero$ fell in love with $darling.fullname$, the baker's daughter.
 

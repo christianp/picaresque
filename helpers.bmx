@@ -40,6 +40,33 @@ Function debugo(txt$)
 	Print "  >> "+txt
 End Function
 
+Function loadtxt$(filename$)
+	f:TStream=ReadFile(filename)
+	txt$=""
+	While Not Eof(f)
+		txt:+f.ReadString(1000)
+	Wend
+	CloseFile(f)
+	Return txt
+End Function
+
+
+Global romandecs[]=[1000,900,500,400,100,90,50,40,10,9,5,4,1]
+Global romannums$[]=["M","CM","D","CD","C","XC","L","XL","X","IX","V","IV","I"]
+Function romannumeral$(n)
+	i=0
+	s$=""
+	While n
+		If n>=romandecs[i]
+			n:-romandecs[i]
+			s:+romannums[i]
+		Else
+			i:+1
+		EndIf
+	Wend
+	Return s
+End Function
+
 Rem
 Function cleversplit$[](in$,m$)
 	c=0
