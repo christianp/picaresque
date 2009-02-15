@@ -76,8 +76,15 @@ End Type
 Type debate Extends gamemode
 	Field a:argument
 	
+	Field gi:ginput
+	Field box:textbox
+	
 	Method New()
 		g:grammar=grammar.find("debate")
+		
+		gi=ginput.Create(g,0,gfxheight/2,gfxwidth,gfxheight/2)
+		box=textbox.Create(0,0,gfxwidth,gfxheight/2)
+		
 		a:argument=New argument
 	
 		tenets=0
@@ -93,6 +100,7 @@ Type debate Extends gamemode
 				contrapositive=truth(lnot.Create(a.statement))
 			EndIf
 			If Not (positive Or contrapositive)
+				box.addtext a.statement.repr()
 				Print "eureka!"
 				Print dogma
 				tenets:+1
@@ -106,31 +114,41 @@ Type debate Extends gamemode
 	End Method
 	
 	Method update()
-		g:grammar=grammar.find("debate")
-		Local test:lterm
-		While Not test
-			in$=Input(">")
-			test=a.interpret(g.match(in))
-		Wend
-		result=truth(test)
-		Print test.repr()
-		If result
-			Print "It's true!"
-			win
-		Else
-			Print "That's false"
-			lose
+		gi.update
+		If gi.out
+			say gi.out
 		EndIf
+		
+		box.update
+
+	End Method
+	
+	Method say(s:sentence)
+		Print s.repr()
+		test:lterm=a.interpret(s)
+		If test
+			result=truth(test)
+			box.addtext test.repr()
+			If result
+				box.addtext "That's true!"
+				win
+			Else
+				box.addtext "That's false."
+				lose
+			EndIf
+		endif
 	End Method
 	
 	Method win()
 		status=1
 	End Method
 	Method lose()
-		status=2
+		'status=2
 	End Method
 	
 	Method draw()
+		box.draw
+		gi.draw
 	End Method
 End Type
 

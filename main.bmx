@@ -1,4 +1,4 @@
-Include "jsondecoder.bmx"
+'Include "jsondecoder.bmx"
 Include "grammar.bmx"
 Include "template.bmx"
 Include "helpers.bmx"
@@ -10,6 +10,7 @@ Include "convo.bmx"
 Include "gfx.bmx"
 Include "typeset.bmx"
 Include "text.bmx"
+Include "font.bmx"
 
 Global world:db,templates:db
 Global game:tgame

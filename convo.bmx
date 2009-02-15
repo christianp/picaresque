@@ -9,7 +9,7 @@ Type convo Extends gamemode
 		changegrammar "hero question"
 		agreeability=Rnd(0,1)
 		debugo "agreeability: "+agreeability
-		box=textbox.Create(0,gfxheight/2,gfxwidth,gfxheight/2)
+		box=textbox.Create(0,0,gfxwidth,gfxheight/2)
 	End Method
 	
 	Method update()
@@ -26,7 +26,7 @@ Type convo Extends gamemode
 	
 	Method changegrammar(name$)
 		g=grammar.find(name)
-		gi=ginput.Create(g)
+		gi=ginput.Create(g,0,gfxheight/2,gfxwidth,gfxheight/2)
 	End Method
 		
 	Method say(s:sentence)
@@ -139,8 +139,8 @@ Type convo Extends gamemode
 	End Method	
 	
 	Method draw()
-		gi.draw
 		box.draw
+		gi.draw
 	End Method
 End Type
 

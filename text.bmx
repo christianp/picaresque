@@ -4,15 +4,20 @@ Type ginput
 	Field txt$
 	Field out:sentence
 	Field font:wfont
+	Field x#,y#,w#,h#
 	
 	Method New()
 		options=New TList
 		font=wfont(dfonts.valueforkey("handwriting"))
 	End Method
 	
-	Function Create:ginput(g:grammar)
+	Function Create:ginput(g:grammar,x#,y#,w#,h#)
 		gi:ginput=New ginput
 		gi.g=g
+		gi.x=x
+		gi.y=y
+		gi.w=w
+		gi.h=h
 		Return gi
 	End Function
 	
@@ -42,18 +47,35 @@ Type ginput
 			txt:+Chr(c)
 		End Select
 	End Method
-	
+
 	Method draw()
+		Local r,g,b
+		GetClsColor r,g,b
+		SetColor r,g,b
+		DrawRect x,y,w,h
+		SetColor 0,0,0
+		
 		size#=30
 		
-		x=font.width(txt,size)
-		y=font.height(size)
+		dx=x+font.width(txt,size)
+		dy=y+font.height(size)
 
-		font.draw txt,0,y,size
+		font.draw txt,x,dy,size
 
+		bigwidth=0
+		oy#=dy
 		For option$=EachIn options
-			y:+font.height(size)*1.2
-			font.draw option,x,y,size
+			If dy>y+h
+				dy=oy
+				dx:+bigwidth+5
+				bigwidth=0
+			EndIf
+			dy:+font.height(size)*1.2
+			tw#=font.width(option,size)
+			If tw>bigwidth
+				bigwidth=tw
+			EndIf
+			font.draw option,dx,dy,size
 		Next
 		SetScale 1,1
 	End Method
@@ -95,7 +117,7 @@ Type textbox
 		ms=MilliSecs()
 		If scroll>0	
 			If KeyDown(KEY_UP) 
-				scroll:- 8
+				scroll:- 1
 				If scroll<0 Then scroll=0
 				scrolling = 0
 				lastscroll=ms
@@ -106,7 +128,7 @@ Type textbox
 				scroll:+ 2
 			EndIf
 			If KeyDown(KEY_DOWN) 
-				scroll:+ 8
+				scroll:+ 1
 				scrolling = 0
 				lastscroll=ms
 			EndIf
@@ -120,9 +142,8 @@ Type textbox
 	End Method
 
 	Method draw()
-		DrawText length+" , "+scroll,x,y
 		For tl:typeline=EachIn lines
-			If tl.y+tl.height-scroll>0 Or tl.y-scroll<h
+			If tl.y+tl.height-scroll>=0 And tl.y-scroll<=h
 				tl.draw x,y-scroll
 			EndIf
 		Next

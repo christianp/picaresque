@@ -3266,9 +3266,9 @@ Type tradermode Extends gamemode
 	
 	Method startgfx()
 		gwidth=600
-		gheight = 800
+		gheight = 600
 
-		scrollerheight=600
+		scrollerheight=400
 		scrollerwidth=gwidth
 
 		AppTitle="Amsterdammit"

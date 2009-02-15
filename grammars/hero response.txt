@@ -1,8 +1,9 @@
 $ :: debate :: debate;
 $ :: fight :: fight;
 
-$ :: opinion :: That is ~adverb~ ~opinion~;
-$ :: opinion :: How ~opinion~;
+$ :: opinion :: That is ~adverb~ ~opinion~.;
+$ :: opinion :: How ~opinion~.;
+$ :: opinion :: That is ~opinion~.;
 adverb :: big :: perfectly;
 adverb :: big :: totally;
 adverb :: big :: entirely;
@@ -14,6 +15,7 @@ adverb :: small :: somewhat;
 adverb :: small :: a little;
 adverb :: small :: slightly;
 adverb :: small :: in a way;
+adverb :: small :: quite;
 
 opinion :: good :: fascinating;
 opinion :: good :: interesting;
@@ -27,10 +29,10 @@ opinion :: bad :: outrageous;
 opinion :: bad :: in bad taste;
 opinion :: bad :: wrong;
 
-$ :: description :: Your ~property~ ~adverb~ ~adjective~;
-$ :: description :: You are ~adverb~ ~adjective~;
-$ :: comparison :: Your ~property~ as ~adjective~ as ~comparison~;
-$ :: comparison :: You are as ~adjective~ as ~comparison~;
+$ :: description :: Your ~property~ ~adverb~ ~adjective~.;
+$ :: description :: You are ~adverb~ ~adjective~.;
+$ :: comparison :: Your ~property~ as ~adjective~ as ~comparison~.;
+$ :: comparison :: You are as ~adjective~ as ~comparison~.;
 
 property :: bodypart :: eyes are;
 property :: bodypart :: face is;

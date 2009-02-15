@@ -1,3 +1,4 @@
+'Include "fonttest.bmx"
 'Include "gfx.bmx"
 'Include "grammar.bmx"
 'Include "helpers.bmx"
@@ -45,7 +46,7 @@ Function loadfontset:wfont[](kind$)
 		fname$=Trim(lines[i])
 		h#=Float(lines[i+1])
 		jiggle#=Float(lines[i+2])
-		wf:wfont=wfont.Create("fonts/"+fname,h,jiggle,0)
+		wf:wfont=wfont.Create("fonts/"+fname,h,jiggle)
 		allfonts.insert fname,wf
 		wfonts[i/3]=wf
 		i:+3
@@ -718,55 +719,6 @@ Type typeline
 End Type
 
 
-Const wfontinc#=2
-Type wfont
-	Field h#
-	Field jiggle#
-	Field images:timagefont[5]
-	Field scale#
-	
-	Function Create:wfont(fname$,height#,jiggle#,style=SMOOTHFONT)
-		wf:wfont=New wfont
-		wf.h=height
-		wf.jiggle=jiggle
-		wf.makesizes fname,style
-		Return wf
-	End Function
-	
-	Method makesizes(fname$,style)
-		For x=1 To 5
-			images[x-1]=LoadImageFont(fname,wfontinc^(x+2),style)
-		Next
-	End Method
-	
-	Method setfont(size#)
-		i=Int((Log(size)/Log(wfontinc))-2)
-		If i>4 i=4
-		If i<0 i=0
-		SetImageFont images[i]
-		'scale#=size/(wfontinc^(i+3))
-		scale=1
-		SetScale scale,scale
-	End Method
-	
-	Method draw(txt$,x,y,size#)
-		setfont size
-		DrawText txt,x,y-height(size)-jiggle*size
-		SetScale 1,1
-	End Method
-	
-	Method height#(size#)
-		Return h*size
-	End Method
-	
-	Method width#(txt$,size#)
-		setfont size
-		w#=TextWidth(txt)*scale
-		SetScale 1,1
-		Return w
-	End Method
-End Type
-
 Rem
 Function clevertextheight(txt$,tif:timagefont=Null)
 	If Not tif
@@ -793,7 +745,8 @@ fonts.insert "handwriting",handwritingfonts[Rand(0,Len(handwritingfonts)-1)]
 fonts.insert "print",printfonts[Rand(0,Len(printfonts)-1)]
 fonts.insert "headline",headlinefonts[Rand(0,Len(headlinefonts)-1)]
 txt$=loadtxt("test.txt")
-tb:textblock=textblock.Create(txt,800,.6,fonts)
+scale#=Rnd(.5,1)
+tb:textblock=textblock.Create(txt,800,scale,fonts)
 While Not KeyHit(KEY_SPACE)
 	DrawLine 0,tb.y,800,tb.y
 	xoff=Rand(-50,50)
