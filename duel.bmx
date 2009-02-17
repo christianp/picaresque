@@ -1,6 +1,7 @@
 Framework brl.d3d7max2d
 Import brl.max2d
 Import brl.standardio
+Import brl.random
 
 Type bone
 	Field j1:joint
@@ -104,6 +105,11 @@ Type joint
 		npx=0
 		npy=0
 		
+		If py>groundheight(px)
+			py=groundheight(px)
+			y=py
+		EndIf
+		
 		npy:+4
 		
 		movex=0
@@ -122,9 +128,9 @@ Type joint
 		If Not moves Return
 		tx=movex/moves+px
 		ty=movey/moves+py
-		SetColor 0,0,255
-		DrawLine px,py,tx,ty
-		SetColor 255,255,255
+		'SetColor 0,0,255
+		'DrawLine px,py,tx,ty
+		'SetColor 255,255,255
 		domove tx,ty
 	End Method
 	
@@ -173,6 +179,10 @@ Type joint
 		dy2#=y-j.py
 		an2#=ATan2(dy2,dx2)
 		dan#=andiff(an1,an2)
+		maxdan=30+15*strength
+		If Abs(dan)>maxdan
+			maxdan=30*Sgn(dan)
+		EndIf
 		
 		sv#=.5*w
 		an=an2+dan*sv
@@ -182,7 +192,7 @@ Type joint
 	End Method
 	
 	Method reposition(tx#,ty#)
-		DrawLine px,py,tx,ty
+		'DrawLine px,py,tx,ty
 		px:+(tx-px)*strength
 		py:+(ty-py)*strength
 		npx:+(tx-px)
@@ -204,6 +214,8 @@ Type skeleton
 	Field lfoot:joint, lknee:joint, rfoot:joint, rknee:joint
 	Field pelvis:joint, topspine:joint, lelbow:joint, relbow:joint, lhand:joint, rhand:joint
 	Field mx#,my#,gx#,gy#
+	Field stumble#
+	Field laststep
 	
 	Method New()
 		joints=New TList
@@ -312,6 +324,7 @@ Type skeleton
 		
 		DrawOval gx-3,gy-3,6,6
 		
+		
 		'find middle of stance
 		n=0
 		mx#=0
@@ -354,9 +367,34 @@ Type skeleton
 		rknee.moveto rfoot.px,rfoot.py-size*2,1
 		
 		
+		'stumbling
+		gx:+stumble
+		stumble:*.98
+		If Abs(stumble)<.5 stumble=0
+		If stumble
+			an#=stumble*.1
+			rhand.moveto topspine.px+Cos(an)*size*2,topspine.py+Sin(an)*size*2,4
+		EndIf
+		pelvis.py:-stumble*5
+		
+		For j:joint=EachIn joints
+			If Not j.fixed
+				j.px:+stumble
+			EndIf
+		Next
+		
 	End Method
 	
 	Method walk()
+
+		If lfoot.px<rfoot.px
+			leftest:joint=lfoot
+			rightest:joint=rfoot
+		Else
+			leftest:joint=rfoot
+			rightest:joint=lfoot
+		EndIf
+		
 		If lfoot.fixed
 			If rfoot.fixed
 				mode=0	'standing steady, consider a step
@@ -375,16 +413,18 @@ Type skeleton
 			EndIf
 		EndIf
 		
+
 		Select mode
 		Case 0
-			If MouseDown(1)
-				If lfoot.px<rfoot.px
-					leftest:joint=lfoot
-					rightest:joint=rfoot
-				Else
-					leftest:joint=rfoot
-					rightest:joint=lfoot
-				EndIf
+			If gx<leftest.px-size*1.5
+				rightest.fixed=0
+			ElseIf gx>rightest.px+size*1.5
+				leftest.fixed=0
+			EndIf
+		
+			laststep:-1
+			If laststep>0 Return
+			If MouseHit(1) Or stumble
 				
 				dx#=gx-mx
 				If Abs(dx)>size
@@ -396,25 +436,31 @@ Type skeleton
 						leftest.py:-5
 					EndIf
 				EndIf
-			endif
+			EndIf
 		Case 1
 			dx#=lhand.px-pivot.px
 			tx#=pivot.px+Sgn(dx)*size*4
 			ty#=(pelvis.py+pivot.py)/2
 			ty#=pelvis.py
 			DrawRect tx-size*.4,ty,size*.8,3
-			If Abs(free.px-tx)>size
+			DrawText (free.px-tx)*Sgn(tx-gx),0,15
+			If (free.px-tx)*Sgn(tx-gx)<-size
 				f#=(pivot.py-free.py)/(pivot.py-pelvis.py)+.3
 				If f>1 f=1
 				free.moveto tx,ty,.1
 				free.py:-2
 				pelvis.py:-2
 			Else
-				free.px:+Sgn(dx)*1
-				If free.py>500
-					free.py=500
-					free.y=500
+				pelvis.py:+1
+				free.px:-Sgn(dx)*1
+				free.py:+2
+				gh#=groundheight(free.px)
+				If free.py>=gh
+					free.x=free.px
+					free.py=gh
+					free.y=gh
 					free.fixed=1
+					laststep=10
 				EndIf
 			EndIf
 		End Select
@@ -431,11 +477,21 @@ Type skeleton
 
 End Type
 
+Function groundheight#(x#)
+	If x<gfxwidth/3
+		Return gfxheight-50
+	Else
+		x:-gfxwidth/3
+		Return gfxheight-5*(x*x/8000)-50
+	EndIf
+End Function
 
-Graphics 600,600,0
+Global gfxwidth=960
+Global gfxheight=600
+Graphics gfxwidth,gfxheight,0
 SetBlend ALPHABLEND
 
-s:skeleton=skeleton.Create(300,500,1,20)
+s:skeleton=skeleton.Create(300,groundheight(300),1,20)
 acc#=0
 While 1
 	
@@ -456,8 +512,20 @@ While 1
 	If KeyDown(KEY_S)
 		s.pelvis.py:+20
 		s.topspine.py:+10
-	EndIf	
+	EndIf
+	If Not s.stumble
 		s.lhand.moveto MouseX(),MouseY()
+	Else
+		s.lhand.moveto s.gx+stumble*.2,s.gy-150
+	EndIf
+	
+	If MouseHit(2)
+		s.stumble:-5
+	EndIf
+	
+	For x=0 To 959 Step 1
+		DrawRect x,groundheight(x),1,1
+	Next
 	
 	s.draw
 	
