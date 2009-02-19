@@ -1,20 +1,30 @@
-Framework brl.d3d7max2d
-Import brl.max2d
-Import brl.standardio
-Import brl.random
+'Framework brl.d3d7max2d
+'Import brl.max2d
+'Import brl.standardio
+'Import brl.random
+
+Include "texpoly.bmx"
 
 Type bone
 	Field j1:joint
 	Field j2:joint
 	Field length#
+	Field an#
+	Field topan#,toplength#
+	Field botan#,botlength#
 	
-	Function Create:bone(j1:joint,j2:joint,length#)
+	Function Create:bone(j1:joint,j2:joint,length#,topan#,toplength#,botan#,botlength#)
 		b:bone=New bone
 		b.j1=j1
 		b.j2=j2
 		j1.bones.addlast b
 		j2.bones.addlast b
 		b.length=length
+		
+		b.topan=topan
+		b.toplength=toplength
+		b.botan=botan
+		b.botlength=botlength
 		Return b
 	End Function
 	
@@ -51,13 +61,41 @@ Type bone
 		If j=j2 Return j1
 	End Method
 	
+	Method update()
+		dx#=j2.x-j1.x
+		dy#=j2.y-j1.y
+		an#=ATan2(dy,dx)
+	End Method
+	
 	Method draw()
-		SetLineWidth 3
-		SetColor 255,255,255
-		DrawLine j1.x,j1.y,j2.x,j2.y
-		SetLineWidth 1
+		'SetLineWidth 3
+		'SetColor 255,255,255
+		'DrawLine j1.x,j1.y,j2.x,j2.y
+		'SetLineWidth 1
+		
+		
+		Local poly#[]
+		
+		topx1#=j1.x+Cos(an+topan)*toplength
+		topy1#=j1.y+Sin(an+topan)*toplength
+		topx2#=j1.x+Cos(an-topan)*toplength
+		topy2#=j1.y+Sin(an-topan)*toplength
+		botx1#=j2.x+Cos(an-botan+180)*botlength
+		boty1#=j2.y+Sin(an-botan+180)*botlength
+		botx2#=j2.x+Cos(an+botan+180)*botlength
+		boty2#=j2.y+Sin(an+botan+180)*botlength
+		
+		poly=[topx1,topy1,j1.x,j1.y,topx2,topy2,botx2,boty2,j2.x,j2.y,botx1,boty1]
+		DrawtexturedPoly paper, panuv(poly)
+		
 	End Method
 End Type
+
+Function DrawPolyOutline(poly#[])
+	For i=0 To Len(poly)-2 Step 2
+		DrawRect poly[i],poly[i+1],2,2
+	Next
+End Function
 
 Type joint
 	Field weight#,strength#
@@ -90,7 +128,7 @@ Type joint
 		Else
 			SetColor 255,255,255
 		EndIf
-		DrawOval x-2,y-2,4,4
+		'DrawOval x-2,y-2,4,4
 	End Method
 	
 	Method update()
@@ -212,7 +250,9 @@ Type skeleton
 	Field dir
 	Field joints:TList, bones:TList
 	Field lfoot:joint, lknee:joint, rfoot:joint, rknee:joint
+	Field head:joint
 	Field pelvis:joint, topspine:joint, lelbow:joint, relbow:joint, lhand:joint, rhand:joint
+	Field neck:bone
 	Field mx#,my#,gx#,gy#
 	Field stumble#
 	Field laststep
@@ -255,16 +295,18 @@ Type skeleton
 		lhand:joint = addjoint(4, topspine.y / size,7,handstrength) 
 		relbow:joint = addjoint(- 2, topspine.y / size,1,elbowstrength) 
 		rhand:joint = addjoint(- 4, topspine.y / size,3,handstrength)
+		head:joint = addjoint(0,-8,1, .5)
 		
-		llowleg:bone = addbone(lknee, lfoot, 2) 
-		lupleg:bone = addbone(pelvis, lknee, 2) 
-		rlowleg:bone = addbone(rknee, rfoot, 2) 
-		rupleg:bone = addbone(pelvis, rknee, 2) 
-		spine:bone = addbone(pelvis, topspine, 3) 
-		luparm:bone = addbone(topspine, lelbow, 2) 
-		lforearm:bone = addbone(lelbow, lhand, 2) 
-		ruparm:bone = addbone(topspine, relbow, 2) 
-		rforearm:bone = addbone(relbow, rhand, 2) 
+		llowleg:bone = addbone(lknee, lfoot, 2, 30, .1, 60, .3) 
+		lupleg:bone = addbone(pelvis, lknee, 2, 60, .7, 30, .1) 
+		rlowleg:bone = addbone(rknee, rfoot, 2, 30, .1, 60, .3) 
+		rupleg:bone = addbone(pelvis, rknee, 2, 60, .7, 45, .1) 
+		spine:bone = addbone(pelvis, topspine, 3, 80, .3, 60, 1) 
+		luparm:bone = addbone(topspine, lelbow, 2, 40, .7, 30, .1) 
+		lforearm:bone = addbone(lelbow, lhand, 2, 40, .25, 30, .1) 
+		ruparm:bone = addbone(topspine, relbow, 2, 40, .7, 30, .1) 
+		rforearm:bone = addbone(relbow, rhand, 2, 40, .25, 30, .1) 
+		neck:bone = addbone(topspine, head,1, 80,.2,80,.5)
 	End Method
 
 	Method addjoint:joint(bx:Float, by:Float, weight#, strength#=1,fixed = 0) 
@@ -273,8 +315,8 @@ Type skeleton
 		Return j
 	End Method	
 
-	Method addbone:bone(j1:joint, j2:joint, length:Float) 
-		b:bone = bone.Create(j1, j2, length * size) 
+	Method addbone:bone(j1:joint, j2:joint, length:Float, topan#=0, toplength#=0, botan#=0, botlength#=0) 
+		b:bone = bone.Create(j1, j2, length * size, topan, toplength*size, botan, botlength*size) 
 		bones.AddLast b
 		Return b
 	End Method
@@ -293,6 +335,8 @@ Type skeleton
 		
 		walk
 		
+		look
+		
 		For c=1 To 5
 			For j:joint=EachIn joints
 				If Not j.fixed
@@ -305,6 +349,10 @@ Type skeleton
 			For b:bone=EachIn bones
 				b.constrain
 			Next
+		Next
+		
+		For b:bone=EachIn bones
+			b.update
 		Next
 	End Method
 	
@@ -322,7 +370,7 @@ Type skeleton
 		gx:/tweight
 		gy:/tweight
 		
-		DrawOval gx-3,gy-3,6,6
+		'DrawOval gx-3,gy-3,6,6
 		
 		
 		'find middle of stance
@@ -346,7 +394,7 @@ Type skeleton
 			my=maxmy
 		EndIf
 		
-		DrawOval mx,500,3,3
+		'DrawOval mx,500,3,3
 		
 		dx#=(gx-mx)*.02
 		For j:joint=EachIn joints
@@ -355,7 +403,7 @@ Type skeleton
 			EndIf
 		Next
 		
-		'move hands
+		'move bits
 		dx#=(mx-gx)*.9
 		lhand.moveto lhand.px+dx,my
 		rhand.moveto rhand.px+dx,my
@@ -363,8 +411,8 @@ Type skeleton
 		pelvis.moveto mx,gy,.3
 		topspine.moveto pelvis.px,pelvis.py-size*3
 		
-		lknee.moveto lfoot.px,lfoot.py-size*2,1
-		rknee.moveto rfoot.px,rfoot.py-size*2,1
+		lknee.moveto lfoot.px,lfoot.py-size*2,.5
+		rknee.moveto rfoot.px,rfoot.py-size*2,.5
 		
 		
 		'stumbling
@@ -416,14 +464,14 @@ Type skeleton
 
 		Select mode
 		Case 0
+			laststep:-1
+			If laststep>0 Return
 			If gx<leftest.px-size*1.5
 				rightest.fixed=0
 			ElseIf gx>rightest.px+size*1.5
 				leftest.fixed=0
 			EndIf
 		
-			laststep:-1
-			If laststep>0 Return
 			If MouseHit(1) Or stumble
 				
 				dx#=gx-mx
@@ -442,8 +490,8 @@ Type skeleton
 			tx#=pivot.px+Sgn(dx)*size*4
 			ty#=(pelvis.py+pivot.py)/2
 			ty#=pelvis.py
-			DrawRect tx-size*.4,ty,size*.8,3
-			DrawText (free.px-tx)*Sgn(tx-gx),0,15
+			'DrawRect tx-size*.4,ty,size*.8,3
+			'DrawText (free.px-tx)*Sgn(tx-gx),0,15
 			If (free.px-tx)*Sgn(tx-gx)<-size
 				f#=(pivot.py-free.py)/(pivot.py-pelvis.py)+.3
 				If f>1 f=1
@@ -464,6 +512,14 @@ Type skeleton
 				EndIf
 			EndIf
 		End Select
+	End Method
+	
+	Method look()
+		an#=ATan2(lhand.py-topspine.py,lhand.px-topspine.px)-90
+		If an<-180 an:+360
+		If an>0 an:-180
+		head.swing neck, topspine.px+Cos(an)*size,topspine.py+Sin(an)*size,1
+		head.swing neck, topspine.px,topspine.py-size,.5
 	End Method
 	
 	Method draw()
@@ -490,8 +546,9 @@ Global gfxwidth=960
 Global gfxheight=600
 Graphics gfxwidth,gfxheight,0
 SetBlend ALPHABLEND
+Global paper:timage=LoadImage("inspiration/fencing/bluepaper.jpg")
 
-s:skeleton=skeleton.Create(300,groundheight(300),1,20)
+s:skeleton=skeleton.Create(300,groundheight(300),1,30)
 acc#=0
 While 1
 	
