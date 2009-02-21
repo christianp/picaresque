@@ -3,7 +3,6 @@
 'Import brl.standardio
 'Import brl.random
 
-Include "texpoly.bmx"
 
 Type bone
 	Field j1:joint
@@ -246,6 +245,7 @@ Function andiff#(an1#,an2#)
 End Function
 
 Type skeleton
+	Field aimx#,aimy#
 	Field size#
 	Field dir
 	Field joints:TList, bones:TList
@@ -253,9 +253,12 @@ Type skeleton
 	Field head:joint
 	Field pelvis:joint, topspine:joint, lelbow:joint, relbow:joint, lhand:joint, rhand:joint
 	Field neck:bone
+	Field lforearm:bone
+	Field swordtip:joint, sword:bone
 	Field mx#,my#,gx#,gy#
 	Field stumble#
 	Field laststep
+	Field walking
 	
 	Method New()
 		joints=New TList
@@ -285,6 +288,8 @@ Type skeleton
 		spinestrength#=.3
 		elbowstrength#=.2
 		handstrength#=.6
+		headstrength#=.5
+		swordstrength#=.4
 		lfoot:joint = addjoint(-1, 0,1,footstrength, 1) 
 		lknee:joint = addjoint(0, - 2,1,kneestrength) 
 		rfoot:joint = addjoint(1, 0,1,footstrength, 1) 
@@ -292,10 +297,11 @@ Type skeleton
 		pelvis:joint = addjoint(0, - 4,4,pelvisstrength) 
 		topspine:joint = addjoint(0, - 7,4,spinestrength) 
 		lelbow:joint = addjoint(2, topspine.y / size,1,elbowstrength) 
-		lhand:joint = addjoint(4, topspine.y / size,7,handstrength) 
+		lhand:joint = addjoint(4, topspine.y / size,6,handstrength) 
 		relbow:joint = addjoint(- 2, topspine.y / size,1,elbowstrength) 
 		rhand:joint = addjoint(- 4, topspine.y / size,3,handstrength)
-		head:joint = addjoint(0,-8,1, .5)
+		head:joint = addjoint(0,-8,1, headstrength)
+		swordtip:joint = addjoint(7,lhand.y/size,1, swordstrength)
 		
 		llowleg:bone = addbone(lknee, lfoot, 2, 30, .1, 60, .3) 
 		lupleg:bone = addbone(pelvis, lknee, 2, 60, .7, 30, .1) 
@@ -307,6 +313,7 @@ Type skeleton
 		ruparm:bone = addbone(topspine, relbow, 2, 40, .7, 30, .1) 
 		rforearm:bone = addbone(relbow, rhand, 2, 40, .25, 30, .1) 
 		neck:bone = addbone(topspine, head,1, 80,.2,80,.5)
+		sword:bone=addbone(lhand,swordtip,3,30,.1,30,.1)
 	End Method
 
 	Method addjoint:joint(bx:Float, by:Float, weight#, strength#=1,fixed = 0) 
@@ -335,7 +342,17 @@ Type skeleton
 		
 		walk
 		
+		walking=0
+		
 		look
+		
+		If Not stumble
+			lhand.moveto aimx,aimy
+		Else
+			lhand.moveto gx+stumble*.2,gy-150
+		EndIf
+		
+		swingsword()
 		
 		For c=1 To 5
 			For j:joint=EachIn joints
@@ -354,6 +371,9 @@ Type skeleton
 		For b:bone=EachIn bones
 			b.update
 		Next
+
+		aimx=lhand.px
+		aimy=lhand.py
 	End Method
 	
 	Method balance()
@@ -434,13 +454,21 @@ Type skeleton
 	End Method
 	
 	Method walk()
+	
+		If stumble
+			walking=1
+		EndIf
 
 		If lfoot.px<rfoot.px
 			leftest:joint=lfoot
+			leftknee:joint=lknee
 			rightest:joint=rfoot
+			rightknee:joint=lknee
 		Else
 			leftest:joint=rfoot
+			leftknee:joint=rknee
 			rightest:joint=lfoot
+			rightknee:joint=rknee
 		EndIf
 		
 		If lfoot.fixed
@@ -450,12 +478,14 @@ Type skeleton
 				mode=1	'walking
 				pivot:joint=lfoot
 				free:joint=rfoot
+				freeknee:joint=rknee
 			EndIf
 		Else
 			If rfoot.fixed
 				mode=1
 				pivot:joint=rfoot
 				free:joint=lfoot
+				freeknee:joint=lknee
 			Else
 				'falling!
 			EndIf
@@ -472,7 +502,7 @@ Type skeleton
 				leftest.fixed=0
 			EndIf
 		
-			If MouseHit(1) Or stumble
+			If walking
 				
 				dx#=gx-mx
 				If Abs(dx)>size
@@ -496,8 +526,13 @@ Type skeleton
 				f#=(pivot.py-free.py)/(pivot.py-pelvis.py)+.3
 				If f>1 f=1
 				free.moveto tx,ty,.1
-				free.py:-2
-				pelvis.py:-2
+				If free.py>pelvis.py+size
+					free.py:-2
+				EndIf
+				'freeknee.py:-
+				'pelvis.py:-4*size/(free.py-pelvis.py)
+				'pelvis.py:-4
+				'pelvis.moveto pelvis.px,free.py-size*4
 			Else
 				pelvis.py:+1
 				free.px:-Sgn(dx)*1
@@ -522,6 +557,13 @@ Type skeleton
 		head.swing neck, topspine.px,topspine.py-size,.5
 	End Method
 	
+	Method swingsword()
+		an#=lforearm.an+10*Sgn(lhand.x-gx)
+		tx#=lhand.x+Cos(an)*3*size
+		ty#=lhand.y+Sin(an)*3*size
+		swordtip.swing sword,tx,ty,.6
+	End Method
+	
 	Method draw()
 		For b:bone=EachIn bones
 			b.draw
@@ -534,64 +576,72 @@ Type skeleton
 End Type
 
 Function groundheight#(x#)
-	If x<gfxwidth/3
+'	If x<gfxwidth/3
 		Return gfxheight-50
-	Else
-		x:-gfxwidth/3
-		Return gfxheight-5*(x*x/8000)-50
-	EndIf
+'	Else
+'		x:-gfxwidth/3
+'		Return gfxheight-5*(x*x/8000)-50
+'	EndIf
 End Function
 
-Global gfxwidth=960
-Global gfxheight=600
-Graphics gfxwidth,gfxheight,0
-SetBlend ALPHABLEND
-Global paper:timage=LoadImage("inspiration/fencing/bluepaper.jpg")
-
-s:skeleton=skeleton.Create(300,groundheight(300),1,30)
-acc#=0
-While 1
+Global paper:timage
+Type fight Extends gamemode
+	Field s:skeleton
 	
-	s.update
+	Method New()
+		paper=LoadImage("inspiration/fencing/bluepaper.jpg")
+		s:skeleton=skeleton.Create(300,groundheight(300),1,20)
+	End Method
 	
-	If KeyDown(KEY_A)
-		s.pelvis.px:-50
-		s.topspine.px:-20
-	EndIf
-	If KeyDown(KEY_D)
-		s.pelvis.px:+50
-		s.topspine.px:+20
-	EndIf
-	If KeyDown(KEY_W)
-		s.pelvis.py:-20
-		s.topspine.py:-10
-	EndIf	
-	If KeyDown(KEY_S)
-		s.pelvis.py:+20
-		s.topspine.py:+10
-	EndIf
-	If Not s.stumble
-		s.lhand.moveto MouseX(),MouseY()
-	Else
-		s.lhand.moveto s.gx+stumble*.2,s.gy-150
-	EndIf
+	Method update()
+		s.update
+		
+		If MouseHit(1)
+			s.walking=1
+		EndIf
+		
+		If KeyDown(KEY_A)
+			s.pelvis.px:-50
+			s.topspine.px:-20
+		EndIf
+		If KeyDown(KEY_D)
+			s.pelvis.px:+50
+			s.topspine.px:+20
+		EndIf
+		If KeyDown(KEY_W)
+			s.pelvis.py:-20
+			s.topspine.py:-10
+		EndIf	
+		If KeyDown(KEY_S)
+			s.pelvis.py:+20
+			s.topspine.py:+10
+		EndIf
+		s.aimx=MouseX()
+		s.aimy=MouseY()
+		
+		If KeyHit(KEY_SPACE)
+			status=1
+		EndIf
+		
+	End Method
 	
-	If MouseHit(2)
-		s.stumble:-5
-	EndIf
+	Method win()
+		status=1
+	End Method
+	Method lose()
+		status=2
+	End Method
 	
-	For x=0 To 959 Step 1
-		DrawRect x,groundheight(x),1,1
-	Next
+	Method draw()
+		For x=0 To 959 Step 1
+			DrawRect x,groundheight(x),1,1
+		Next
+		
+		s.draw
+		
+		DrawText "left click to walk!",0,0
+		DrawText "SPACE to finish",0,15
+		
 	
-	s.draw
-	
-	DrawText "left click to walk!",0,0
-	
-
-	Flip
-	Cls
-	If KeyHit(KEY_ESCAPE) Or AppTerminate()
-		End
-	EndIf
-Wend
+	End Method
+End Type

@@ -1,0 +1,5 @@
+type lose fight
+
+"Guards!"
+
+$hero$ was overpowered, and dragged off to the $curlo$ jail.

@@ -62,9 +62,9 @@ Type convo Extends gamemode
 			EndIf
 			react score
 		Case "debate"
-			react 5
+			respond "debate"
 		Case "fight"
-			react -5
+			respond "fight"
 		End Select
 	End Method
 	

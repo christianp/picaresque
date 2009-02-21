@@ -1,0 +1,5 @@
+type win debate
+
+"I'm speechless! This changes everything... teach me, O wise one."
+
+"First of all, tell me where $darling$ is."

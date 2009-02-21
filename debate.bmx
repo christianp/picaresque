@@ -112,7 +112,7 @@ Type debate Extends gamemode
 		Print "THE PHILOSOPHY"
 		Print a.philosophy.repr()
 	End Method
-	
+			
 	Method update()
 		gi.update
 		If gi.out
@@ -136,14 +136,16 @@ Type debate Extends gamemode
 				box.addtext "That's false."
 				lose
 			EndIf
-		endif
+		Else
+			gi.reset
+		EndIf
 	End Method
 	
 	Method win()
 		status=1
 	End Method
 	Method lose()
-		'status=2
+		status=2
 	End Method
 	
 	Method draw()

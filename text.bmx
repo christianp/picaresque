@@ -21,6 +21,11 @@ Type ginput
 		Return gi
 	End Function
 	
+	Method reset()
+		txt=""
+		out=Null
+	End method
+	
 	Method update()
 		options:TList=g.options(txt)
 		

@@ -11,6 +11,8 @@ Include "gfx.bmx"
 Include "typeset.bmx"
 Include "text.bmx"
 Include "font.bmx"
+Include "texpoly.bmx"
+Include "duel.bmx"
 
 Global world:db,templates:db
 Global game:tgame
@@ -111,6 +113,10 @@ Type tgame
 					curmode=New convo
 				Case "setback"
 					encounter
+				Case "win fight","win debate"
+					win
+				Case "lose fight","lose debate"
+					lose
 				Case "finish"
 					End
 				End Select
@@ -124,16 +130,16 @@ Type tgame
 			Case "fight"
 				Select curmode.status
 				Case 1	'won
-					win
+					narrate "win fight"
 				Case 2
-					lose
+					narrate "lose fight"
 				End Select
 			Case "debate"
 				Select curmode.status
 				Case 1	'won
-					win
+					narrate "win debate"
 				Case 2
-					lose
+					narrate "lose fight"
 				End Select
 			End Select
 		EndIf
@@ -155,7 +161,7 @@ Type tgame
 	
 	Method journey()
 		progress:+1
-		If progress=3	'finished the game!
+		If progress=5	'finished the game!
 			finish
 		Else
 			makenextlo
@@ -196,6 +202,11 @@ End Type
 Type gamemode
 	Field status
 	
+	Method New()
+		FlushKeys
+		FlushMouse
+	End Method
+	
 	Method update() Abstract
 	Method draw() Abstract
 End Type
@@ -232,27 +243,7 @@ Type narration Extends gamemode
 	End Method
 End Type
 
-Type fight Extends gamemode
 
-	Method update()
-		in$=Input("Win fight? y/n~n")
-		If in="y"
-			win
-		Else
-			lose
-		EndIf
-	End Method
-	
-	Method win()
-		status=1
-	End Method
-	Method lose()
-		status=2
-	End Method
-	
-	Method draw()
-	End Method
-End Type
 
 
 'COMMENCE THE GAMES!

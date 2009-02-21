@@ -35,7 +35,7 @@ Type db Extends TList
 		properties:tmap=New tmap
 		While l<>""
 			words=l.split(" ")
-			properties.insert words[0],words[1]
+			properties.insert words[0]," ".join(words[1..])
 			l=f.ReadLine()
 		Wend
 		If mode=1 'entire file is one datum
