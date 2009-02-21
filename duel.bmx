@@ -589,7 +589,7 @@ Type fight Extends gamemode
 	Field s:skeleton
 	
 	Method New()
-		paper=LoadImage("inspiration/fencing/bluepaper.jpg")
+		paper=LoadImage("images/bluepaper.jpg")
 		s:skeleton=skeleton.Create(300,groundheight(300),1,20)
 	End Method
 	
