@@ -254,6 +254,8 @@ game.init
 'debateme
 'Wend
 
+game.curmode=New fight
+
 Repeat
 	game.update
 	game.draw
