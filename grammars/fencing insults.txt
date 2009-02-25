@@ -1,0 +1,15 @@
+$ :: insult :: You ~adjective~ ~noun~!;
+
+adjective :: villainous;
+adjective :: pitiful;
+
+noun :: guttersnipe;
+noun :: wretch;
+
+$ :: curse :: ~verb~ your ~bodypart~!;
+
+verb :: Damn;
+verb :: I'll make a purse out of;
+
+bodypart :: eyes;
+bodypart :: face;

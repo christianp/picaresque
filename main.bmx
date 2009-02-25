@@ -34,6 +34,7 @@ Type tgame
 		AppTitle="Picaresque!"
 		initgfx 960,600
 		loadfonts
+		SetClsColor 248,236,194
 		
 		'world
 		grammar.loadall
@@ -230,7 +231,6 @@ Type narration Extends gamemode
 		If GetChar() Or MouseHit(1) Or MouseHit(2)
 			status=1
 		EndIf
-		SetClsColor 248,236,194
 	End Method
 	
 	Method draw()

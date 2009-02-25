@@ -108,10 +108,28 @@ Function panuv:Float[] (poly:Float[] )
 	Return opoly
 End Function
 
-Function ZoomX#(x#)
-	Return x
+Global panx#,pany#,zoom#=1
+
+Function DrawZoomTexturedPoly(image:TImage, poly:Float[] ) 
+	poly = poly[..] 
+	While i < Len(poly)
+		poly[i] = ZoomX(poly[i] ) 
+		poly[i + 1] = zoomy(poly[i + 1]) 
+		i:+4
+	Wend
+	DrawTexturedPoly image, poly
 End Function
 
+Function ZoomX#(x#)
+	Return (x - panx) * zoom + gwidth / 2
+End Function
 Function ZoomY#(y#)
-	Return y
+	Return (y - pany) * zoom + gheight / 2
+End Function
+
+Function UnzoomX#(x#)
+	Return (x - gwidth / 2) / zoom + panx
+End Function
+Function UnzoomY#(y#)
+	Return (y - gheight / 2) / zoom + pany
 End Function

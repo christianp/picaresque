@@ -135,7 +135,6 @@ Type grammar
 	End Method
 	
 	Method fill$()
-		Print "FILL"
 		r:grule=findsymbol("$")
 		in$=""
 		l:TList=options(in)

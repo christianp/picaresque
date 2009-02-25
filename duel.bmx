@@ -2,7 +2,7 @@
 'Import brl.max2d
 'Import brl.standardio
 'Import brl.random
-
+'Include "texpoly.bmx"
 
 Type bone
 	Field j1:joint
@@ -85,7 +85,8 @@ Type bone
 		boty2#=j2.y+Sin(an+botan+180)*botlength
 		
 		poly=[topx1,topy1,j1.x,j1.y,topx2,topy2,botx2,boty2,j2.x,j2.y,botx1,boty1]
-		DrawtexturedPoly paper, panuv(poly)
+		
+		DrawzoomtexturedPoly paper, panuv(poly)
 		
 	End Method
 End Type
@@ -261,16 +262,19 @@ Type skeleton
 	Field stumble#
 	Field laststep
 	Field stance,ostance
-	Field swingacc#,swordan#
+	Field swingacc#,swordan#,nswordan#,vswordan#
 	Field opponent:skeleton
 	Field hit
 	Field walking
+	Field aggression,defence
 	
 	Field nextmove,thinktick
 	
 	Method New()
 		joints=New TList
 		bones=New TList
+		aggression=5
+		defence=30
 	End Method
 
 	Function Create:skeleton(x:Float, y:Float, dir, size)
@@ -308,7 +312,7 @@ Type skeleton
 		lhand:joint = addjoint(4, topspine.y / size,6,handstrength) 
 		relbow:joint = addjoint(- 2, topspine.y / size,1,elbowstrength) 
 		rhand:joint = addjoint(- 4, topspine.y / size,3,handstrength)
-		'head:joint = addjoint(0,-8,1, headstrength)
+		head:joint = addjoint(0,-8,1, headstrength)
 		swordtip:joint = addjoint(8,lhand.y/size,0.01, swordstrength)
 		
 		llowleg:bone = addbone(lknee, lfoot, 2, 30, .1, 60, .3) 
@@ -320,7 +324,7 @@ Type skeleton
 		lforearm:bone = addbone(lelbow, lhand, 2, 40, .25, 30, .1) 
 		ruparm:bone = addbone(topspine, relbow, 2, 40, .7, 30, .1) 
 		rforearm:bone = addbone(relbow, rhand, 2, 40, .25, 30, .1) 
-		'neck:bone = addbone(topspine, head,1, 80,.2,80,.5)
+		neck:bone = addbone(topspine, head,1, 80,.2,80,.5)
 		sword:bone=addbone(lhand,swordtip,4,30,.1,30,.1)
 	End Method
 
@@ -356,28 +360,46 @@ Type skeleton
 	End Method
 	
 	Method ai()
+		If Rand(5)=1 And opponent.ostance And opponent.stance=stance_walk
+			parry
+			Return
+		EndIf
+		
 		thinktick:+1
-		If thinktick>nextmove
+		If thinktick>nextmove+Rand(3)
 			thinktick=0
-			If Abs(opponent.mx-mx)>size*15	'move toward opponent
-				stance=stance_walk
-				ostance=0
-				nextmove=10
+			If Abs(opponent.mx-mx)>size*10
+				If (mx-gfxwidth/2)*dir<0 And Rand(10)>1	'move toward opponent
+					advance
+				Else
+					relax
+				EndIf
 				Return
 			EndIf
-			DrawLine gx,0,gx,gy
+			'DrawLine gx,0,gx,gy
+			If opponent.stumble And Rand(10)>3
+				relax
+				Return
+			EndIf
 			
 			If opponent.stance=stance_walk
-				stance=stance_block
-				ostance=opponent.ostance
-				nextmove=50
-				Return
-			Else
-				If Rand(5)>1
-					stance=0
-					nextmove=20
-					Return
+				If Rand(defence)=1
+					relax
 				Else
+					parry
+				EndIf
+			Else
+				If Rand(aggression)=1
+					relax
+				Else
+					thrust
+				EndIf
+				
+			EndIf
+		EndIf
+	End Method
+	
+	Method thrust()
 					stance=stance_walk
 					Select Rand(1,3)
 					Case 1
@@ -389,12 +411,28 @@ Type skeleton
 					End Select
 					nextmove=10
 					Return
-				EndIf
-				
-			EndIf
-		EndIf
 	End Method
-		
+	
+	Method parry()
+				stance=stance_block
+				ostance=opponent.ostance
+				nextmove=50
+				Return
+	End Method
+	
+	Method advance()
+				stance=stance_walk
+				ostance=0
+				nextmove=10
+				Return
+	End Method
+	
+	Method relax()
+					stance=0
+					nextmove=Rand(5,15)
+					Return
+	End Method
+			
 	Method update()
 		If lfoot.fixed Or rfoot.fixed
 			For j:joint=EachIn joints
@@ -503,7 +541,7 @@ Type skeleton
 		stumble:*.98
 		If Abs(stumble)<1.5 stumble=0
 		If stumble
-			DrawLine 0,0,gx,gy
+			'DrawLine 0,0,gx,gy
 			an#=Abs(stumble)*.1
 			rhand.moveto topspine.px+Cos(an)*size*2*Sgn(stumble),topspine.py+Sin(an)*size*2,4
 		EndIf
@@ -511,7 +549,7 @@ Type skeleton
 		
 		For j:joint=EachIn joints
 			If Not j.fixed
-				j.px:+stumble
+				j.px:+stumble*size/30
 			EndIf
 		Next
 		
@@ -567,8 +605,11 @@ Type skeleton
 			Default
 				aimx=mx+size*Rnd(20,30)*dir
 				aimy=gy
-				walking=1
+				If Abs(mx-opponent.mx)>size*10
+					walking=1
+				EndIf
 				swordan=-90
+				swordan=Rand(-30,30)
 			End Select
 		Case stance_upswing
 			aimx=mx+size*2*dir
@@ -638,9 +679,9 @@ Type skeleton
 			If laststep>0 Return
 			
 			If gx<leftest.px-size*1.5		'falling over
-				rightest.fixed=0
+			'	rightest.fixed=0
 			ElseIf gx>rightest.px+size*1.5
-				leftest.fixed=0
+			'	leftest.fixed=0
 			EndIf
 		
 			If walking
@@ -649,14 +690,16 @@ Type skeleton
 				If Abs(dx)>size
 					If dx<0	'weight on left
 						rightest.fixed=0
-						rightest.py:-5
+						rightest.py:-10
 					ElseIf dx>0	'weight on right
 						leftest.fixed=0
-						leftest.py:-5
+						leftest.py:-10
 					EndIf
+					laststep=10
 				EndIf
 			EndIf
 		Case 1
+			laststep:-1
 			dx#=gx-pivot.px
 			tx#=pivot.px+Sgn(dx)*size*4
 			ty#=pelvis.y
@@ -678,7 +721,13 @@ Type skeleton
 				free.px:-Sgn(dx)*1
 				free.py:+2
 				gh#=groundheight(free.px)
-				If free.py>=gh
+				
+				diff#=(groundheight(free.px)-free.py)
+				For j:joint=EachIn joints
+					j.py:+diff/10
+				Next
+				
+				If free.py>=gh And laststep<=0
 					free.x=free.px
 					free.py=gh
 					free.y=gh
@@ -694,11 +743,13 @@ Type skeleton
 	
 	Method look()
 		'head.
-		an#=ATan2(lhand.py-topspine.py,lhand.px-topspine.px)-90
+		an#=ATan2(opponent.lhand.py-topspine.py,opponent.lhand.px-topspine.px)-90
 		If an<-180 an:+360
 		If an>0 an:-180
 		'head.swing neck, topspine.px+Cos(an)*size,topspine.py+Sin(an)*size,1
 		'head.swing neck, topspine.px,topspine.py-size,.5
+		head.moveto topspine.px+Cos(an)*size,topspine.py+Sin(an)*size,1
+		head.moveto topspine.px,topspine.py-size,.5
 	End Method
 	
 	Method swingsword()
@@ -707,7 +758,7 @@ Type skeleton
 
 		wobblean#=MilliSecs()*.7
 		wobble#=size*Rnd(.1,.2)
-		naimx:+Cos(wobblean)*wobble
+		'naimx:+Cos(wobblean)*wobble
 		naimy:+Sin(wobblean)*wobble
 		
 		If Not stumble
@@ -716,10 +767,14 @@ Type skeleton
 			lhand.moveto gx+stumble*.2,gy-150
 		EndIf
 		
+		dan#=andiff(swordan,nswordan)
+		vswordan:+dan*.2
+		vswordan:-vswordan*Abs(vswordan)*.02
+		nswordan:+vswordan
 		If dir=1
-			san#=swordan
+			san#=nswordan
 		Else
-			san=180-swordan
+			san=180-nswordan
 		EndIf
 		an#=lforearm.an+10*Sgn(lhand.x-gx)
 		tx#=lhand.x+Cos(san)*3*size
@@ -732,15 +787,20 @@ Type skeleton
 		If opponent.stance=stance_block And opponent.ostance=ostance And opponent.ostance	'opponent can block
 			opponent.hit=0
 			If (swordtip.px-opponent.lhand.px)*dir>0	'if swords cross
+				dx#=swordtip.px-opponent.lhand.px
 				swordtip.px=opponent.lhand.px
-				stumble:-.3*dir
+				swordtip.px=swordtip.x-dx*.5
+				swordtip.py=swordtip.y
+				'stumble:-1.6*dir
+				'swordtip.px:-dir*size*2
+				'lhand.px:-dir*size*2
 			EndIf
 			Return
 		EndIf
 		
 		If (swordtip.px-opponent.gx)*dir>0 And stance=stance_walk And ostance	'if sword inside opponent
 			If Not opponent.hit
-				opponent.stumble:+dir*10
+				opponent.stumble:+dir*8
 				opponent.hit=1
 			EndIf
 		Else
@@ -748,62 +808,190 @@ Type skeleton
 		EndIf
 			
 	End Method
-	
+		
 	Method draw()
+		Local r
 		For b:bone=EachIn bones
+			r=(r+50) Mod 256
+			SetColor r,255,255-r
 			b.draw
 		Next
 		For j:joint=EachIn joints
 			j.draw
 		Next
 		
-		DrawText stance,gx,topspine.y-50
+		'DrawText stance,gx,topspine.y-50
 	End Method
 
 End Type
 
 Function groundheight#(x#)
-'	If x<gfxwidth/3
-		Return gfxheight-50
-'	Else
-'		x:-gfxwidth/3
-'		Return gfxheight-5*(x*x/8000)-50
-'	EndIf
+	x=Abs(x)+1
+	Return gfxheight-50-Abs(Log(x)*Sin(x)+Log(x))*3
+
 End Function
+
+Type speech
+	Field x#,y#,txt$
+	Field progress#
+	Field fade#
+	Field s:skeleton
+	Field size#
+	
+	Function Create:speech(s:skeleton,x#,y#,txt$,size#=30)
+		sp:speech=New speech
+		sp.s=s
+		sp.x=x
+		sp.y=y
+		sp.txt=txt
+		sp.fade=1
+		sp.size=size
+		Return sp
+	End Function
+	
+	Method update()
+		progress:+Len(txt)/50.0
+		If progress>Len(txt)
+			fade:-.001
+			fade:*.99
+		EndIf
+		dy#=y-s.head.y
+		If dy>0
+			y:-dy*.2
+		EndIf
+	End Method
+	
+	Method draw()
+		wf:wfont=wfont(dfonts.valueforkey("print"))
+		'wf.draw txt[..Int(progress)],zoomx(x),zoomy(y),20
+		tx#=x-wf.width(txt,size)/2
+		numlines=wf.width(txt,size)/150
+		ty#=y-numlines*wf.height(size)
+		If progress>Len(txt)-1
+			top=Len(txt)-1
+		Else
+			top=progress
+		EndIf
+		mx#=0
+		newline=0
+		
+		SetBlend ALPHABLEND
+		SetAlpha .1
+		SetColor 0,0,0
+		DrawRect zoomx(tx),zoomy(ty),150,numlines*wf.height(size)
+
+		SetBlend MASKBLEND
+		SetColor 0,0,0
+		For i=0 To top
+			t#=(progress-i)/4
+			If t>1 t=1
+			SetAlpha t*fade
+			c$=Chr(txt[i])
+			wf.draw c,zoomx(tx+mx),zoomy(ty),size
+			mx#:+wf.width(c,size)
+			If mx>150
+				newline=1
+			EndIf
+			If c=" " And newline
+				ty:+wf.height(size)
+				mx=0
+				newline=0
+			EndIf
+		Next
+		SetAlpha 1
+	End Method
+End Type
 
 Global paper:timage
 Type fight Extends gamemode
-	Field s:skeleton
-	Field s2:skeleton
+	Field hero:skeleton
+	Field villain:skeleton
+	
+	Field g:grammar
+	Field gi:ginput
+	
+	Field sp:speech
 	
 	Method New()
 		paper=LoadImage("images/bluepaper.jpg")
-		s:skeleton=skeleton.Create(100,groundheight(100),1,20)
-		s2:skeleton=skeleton.Create(700,groundheight(700),-1,20)
-		s.opponent=s2
-		s2.opponent=s
+		hero:skeleton=skeleton.Create(-200,groundheight(-200),1,20)
+		villain:skeleton=skeleton.Create(200,groundheight(200),-1,22)
+		hero.opponent=villain
+		villain.opponent=hero
+		
+		g=grammar.find("fencing insults")
+		gi=ginput.Create(g,0,0,gfxwidth,gfxheight/2)
+		
+		panx=-gfxwidth/2
+		pany=0'gfxheight/2
+		zoom=1
 	End Method
 	
 	Method update()
-		If MouseHit(1)
-			s2.stumble:-10
+		hero.update
+		villain.update
+		
+		
+		hero.ai
+		villain.ai
+		
+		gi.update
+		If gi.out
+			insult hero,gi.out.value()
+			gi.reset
 		EndIf
-		If MouseHit(2)
-			s2.stumble:+10
+		
+		Rem
+		If KeyHit(KEY_ENTER)
+			g:grammar=grammar.find("fencing insults")
+			txt$=g.fill()
+			insult hero,txt
 		EndIf
-		s.update
-		s2.update
+		EndRem
 		
+		If sp
+			hero.relax
+			villain.relax
+			sp.update
+			If sp.fade<=.4
+				sp=Null
+			EndIf
+		EndIf
 		
-		s.control
-		s2.ai
+		camera
 		
-		If KeyHit(KEY_SPACE)
+		If KeyHit(KEY_LCONTROL)
 			status=1
 		EndIf
 		
 	End Method
 	
+	Method insult(s:skeleton,txt$)
+		Print txt
+		sp=speech.Create(s,s.head.x,s.head.y,txt)
+	End Method
+	
+	Method camera()
+
+		mx#=(hero.mx+villain.mx)/2
+		dx#=mx-panx-gfxwidth/2
+		'DrawText dx,0,100
+		'DrawLine gfxwidth/2,0,mx,groundheight(mx)
+		'DrawLine gfxwidth/2,0,panx,groundheight(panx)
+		bump#=gfxwidth*.2
+		If Abs(dx)>bump
+			dx:-Sgn(dx)*bump
+			panx:+dx*.01
+		EndIf
+		
+		my=(hero.gy+villain.gy)/2-gfxheight+(hero.size+villain.size)*3
+		dy#=my-pany
+		If Abs(dy)>50
+			dy:-Sgn(dy)*50
+			pany:+dy*.01
+		EndIf
+		
+	End Method
 	Method win()
 		status=1
 	End Method
@@ -812,16 +1000,60 @@ Type fight Extends gamemode
 	End Method
 	
 	Method draw()
+		Local oy#
 		For x=0 To 959 Step 1
-			DrawRect x,groundheight(x),1,1
+			y#=groundheight(x+panx)-pany
+			If x
+				DrawLine x-1,oy,x,y
+			EndIf
+			oy=y
 		Next
 		
-		s.draw
-		s2.draw
+		hero.draw
+		villain.draw
 		
-		DrawText "left click to walk!",0,0
-		DrawText "SPACE to finish",0,15
 		
-	
+		If sp
+			sp.draw
+		Else
+			gi.draw
+		EndIf
+		
 	End Method
 End Type
+
+Rem
+Type gamemode
+	Field status
+	
+	Method New()
+		FlushKeys
+		FlushMouse
+	End Method
+	
+	Method update() Abstract
+	Method draw() Abstract
+End Type
+
+Global gfxwidth=960
+Global gfxheight=600
+Graphics 960,600,0
+curmode:gamemode=New fight
+oms=MilliSecs()
+While 1
+	curmode.update
+	curmode.draw
+	
+	ms=MilliSecs()
+	fps=1000/(ms-oms)
+	DrawText fps,0,0
+	oms=ms
+
+	Flip
+	Cls
+	
+	If KeyHit(KEY_ESCAPE) Or AppTerminate()
+		End
+	EndIf
+Wend
+endrem

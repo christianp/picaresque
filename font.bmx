@@ -1,3 +1,52 @@
+Global handwritingfonts:wfont[]
+Global printfonts:wfont[]
+Global headlinefonts:wfont[]
+Global allfonts:tmap
+Global dfonts:tmap
+
+
+Function loadfonts()
+	allfonts=New tmap
+	printfonts=loadfontset("print")
+	handwritingfonts=loadfontset("handwriting")
+	headlinefonts=loadfontset("headline")
+
+	dfonts:tmap=New tmap
+	dfonts.insert "handwriting",handwritingfonts[0]
+	dfonts.insert "print",printfonts[0]
+	dfonts.insert "headline",headlinefonts[0]
+	
+	dfonts=pickfonts()
+End Function
+
+Function loadfontset:wfont[](kind$)
+	Local lines$[]=loadtxt("fonts/"+kind+" fonts.txt").split("~n")
+	Local wfonts:wfont[Len(lines)/3]
+	i=0
+	m:tmap=New tmap
+	While i<Len(lines)
+		fname$=Trim(lines[i])
+		h#=Float(lines[i+1])
+		jiggle#=Float(lines[i+2])
+		wf:wfont=wfont.Create("fonts/"+fname,h,jiggle)
+		allfonts.insert fname,wf
+		wfonts[i/3]=wf
+		i:+3
+	Wend
+	Return wfonts
+End Function
+
+Function pickfonts:tmap()
+	fonts:tmap=New tmap
+	fonts.insert "handwriting",handwritingfonts[Rand(Len(handwritingfonts)-1)]
+	fonts.insert "print",printfonts[Rand(Len(printfonts)-1)]
+	fonts.insert "headline",headlinefonts[Rand(Len(headlinefonts)-1)]
+	Return fonts
+End Function
+
+
+
+Rem
 Function testfont(fname$)
 	h#=1
 	jiggle#=0
@@ -35,6 +84,7 @@ Function testfont(fname$)
 	Print "  "+h
 	Print "  "+jiggle
 End Function
+EndRem
 
 Const wfontinc#=2
 Type wfont
@@ -71,7 +121,11 @@ Type wfont
 	
 	Method draw(txt$,x,y,size#)
 		setfont size
-		DrawText txt,x,y-height(size)-jiggle*size
+		For line$=EachIn txt.split("~n")
+			lh#=height(size)
+			DrawText line,x,y-lh-jiggle*size
+			y:+lh
+		Next
 		SetScale 1,1
 	End Method
 	
@@ -84,6 +138,28 @@ Type wfont
 		w#=TextWidth(txt)*scale
 		SetScale 1,1
 		Return w
+	End Method
+	
+	Method fittext$(txt$,size#,w#)
+		line$=""
+		out$=""
+		For word$=EachIn txt.split(" ")
+			ww#=width(word,size)
+			If ww>w
+				If line
+					out:+line+"~n"
+				EndIf
+				out:+word+"~n"
+				line=""
+			ElseIf width(line,size)+ww>w
+				out:+line+"~n"
+				line=word+" "
+			Else
+				line:+word+" "
+			EndIf
+		Next
+		out:+line
+		Return out
 	End Method
 End Type
 
