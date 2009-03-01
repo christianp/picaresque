@@ -13,6 +13,7 @@ Include "text.bmx"
 Include "font.bmx"
 Include "texpoly.bmx"
 Include "duel.bmx"
+Include "thoughts.bmx"
 
 Global world:db,templates:db
 Global game:tgame

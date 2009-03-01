@@ -116,15 +116,15 @@ Type grammar
 		EndIf
 	End Method
 	
-	Method match:sentence(in$)
+	Method match:sentence(in$,startsymbol$="$")
 		Local remainder:grule[]
 		sn:sentence=New sentence
-		findsymbol("$").match(in,sn)
-		Return sn.getsymbol("$")
+		findsymbol(startsymbol).match(in,sn)
+		Return sn.getsymbol(startsymbol)
 	End Method
 	
-	Method options:TList(in$)
-		l:TList=findsymbol("$").options(in)
+	Method options:TList(in$,startsymbol$="$")
+		l:TList=findsymbol(startsymbol).options(in)
 		o:TList=New TList
 		For option$=EachIn l
 			If Not o.contains(option)
@@ -134,13 +134,12 @@ Type grammar
 		Return o
 	End Method
 	
-	Method fill$()
-		r:grule=findsymbol("$")
+	Method fill$(startsymbol$="$")
 		in$=""
-		l:TList=options(in)
+		l:TList=options(in,startsymbol)
 		While l.count()
 			in:+String(picklist(l))
-			l=options(in)
+			l=options(in,startsymbol)
 		Wend
 		Return in
 	End Method

@@ -1,5 +1,7 @@
-Function picklist:Object(l:TList)
-	Return l.valueatindex(Rand(0,l.count()-1))
+Function picklist:Object(l:TList,f!(min_value!,max_value!)=Rnd)
+	n=f(0,1)*l.count()
+	If n=l.count() n:-1
+	Return l.valueatindex(n)
 End Function
 
 Function pickarr:Object(arr:Object[])
@@ -65,6 +67,22 @@ Function romannumeral$(n)
 		EndIf
 	Wend
 	Return s
+End Function
+
+Function poisson(lambda!)
+	If lambda>500 Return poisson(lambda/2)+poisson(lambda/2)
+	k=0
+	u!=Rnd(0,1)
+	fact=1
+	p!=Exp(-lambda)
+	u:-p
+	While u>0
+		k:+1
+		fact:*k
+		p:*lambda/k
+		u:-p
+	Wend
+	Return k
 End Function
 
 Rem

@@ -267,14 +267,23 @@ Type skeleton
 	Field hit
 	Field walking
 	Field aggression,defence
-	
 	Field nextmove,thinktick
+	
+	
+	Field cloud:thoughtcloud
+	Field selection:TList
+	
 	
 	Method New()
 		joints=New TList
 		bones=New TList
 		aggression=5
 		defence=30
+		cloud=New thoughtcloud
+		For c=1 To 3
+			cloud.addrandomthought
+		Next
+		selection=New TList
 	End Method
 
 	Function Create:skeleton(x:Float, y:Float, dir, size)
@@ -289,6 +298,9 @@ Type skeleton
 			j.px=j.x
 			j.py=j.y
 		Next
+		
+		s.cloud.cx=s.head.x-dir*50
+		s.cloud.cy=s.head.y-100
 		
 		Return s
 	End Function
@@ -383,13 +395,13 @@ Type skeleton
 			EndIf
 			
 			If opponent.stance=stance_walk
-				If Rand(defence)=1
-					relax
-				Else
+				'If Rand(defence)=1
+				'	relax
+				'Else
 					parry
-				EndIf
+				'EndIf
 			Else
-				If Rand(aggression)=1
+				If Rand(aggression)=1 Or opponent.stance=stance_block
 					relax
 				Else
 					thrust
@@ -416,7 +428,7 @@ Type skeleton
 	Method parry()
 				stance=stance_block
 				ostance=opponent.ostance
-				nextmove=50
+				nextmove=Rand(20,50)
 				Return
 	End Method
 	
@@ -454,6 +466,8 @@ Type skeleton
 		swingsword()
 		
 		fence
+		
+		thinkcloud
 
 		For c=1 To 10
 			For j:joint=EachIn joints
@@ -783,13 +797,169 @@ Type skeleton
 		
 	End Method
 	
+	Method thinkcloud()
+		tx=mx-dir*cloud.nmaxr
+		ty=head.y-cloud.nmaxr-size
+		cloud.cx:+(tx-cloud.cx)*.01
+		cloud.cy:+(ty-cloud.cy)*.01
+		cloud.update
+		If Rand(1000)=1
+			'cloud.addrandomthought
+		EndIf
+	End Method
+	
+	Method mouseselection()
+		If MouseDown(1)
+			t:thought=thought.pick(cloud.thoughts,unzoomx(MouseX()-cloud.cx),unzoomy(MouseY()-cloud.cy),linksize/4)
+			If selection.contains(t) And t<>selection.last()
+				selection.removelast
+			ElseIf t And (Not selection.contains(t)) And selection.count()<3
+				If selection.count()=0 Or thought(selection.last()).neighbours.contains(t)
+					selection.addlast t
+				EndIf
+			EndIf
+		ElseIf selection.count()
+			quip
+		EndIf
+	End Method
+	
+	Method aiselection()
+		Function thoughtsort(o1:Object,o2:Object)
+			t1:thought=thought(o1)
+			t2:thought=thought(o2)
+			If t1.value<t2.value Return 1 Else Return -1
+		End Function
+		
+		Function sqrrand!(min_value!=1,max_value!=0)
+			u#=Rand(min_value,max_value)
+			Return u*u
+		End Function
+	
+	
+		If selection.count() And Rand(1500/(selection.count()*cloud.thoughts.count()))=1
+			quip
+		EndIf
+		If Rand(100)>1 Return
+		If selection.count() 
+			If selection.count()<3
+				l:TList=New TList
+				For t:thought=EachIn thought(selection.last()).neighbours
+					If Not selection.contains(t)
+						l.addlast t
+					EndIf
+				Next
+				If l.count()
+					l.sort 1,thoughtsort
+					selection.addlast picklist(l,sqrrand)
+				Else
+					selection.removelast
+				EndIf
+			EndIf
+		Else
+			selection.addlast picklist(cloud.thoughts,sqrrand)
+		EndIf
+	End Method
+	
+	Method quip[]()
+		If fight(game.curmode).sp Return
+
+			For t:thought=EachIn selection
+				cloud.thoughts.remove t
+				For t2:thought=EachIn t.neighbours
+					t2.neighbours.remove t
+				Next
+			Next
+			thought.availability cloud.thoughts
+			Local score[3]
+
+			For t:thought=EachIn selection
+				For i=0 To 2
+					score[i]:+t.score[i]
+				Next
+			Next
+			For i=0 To 2
+				tot:+Abs(score[i])
+			Next
+			'If tot<>0
+			'	For i=0 To 2
+			'		score[i]:/Abs(tot)
+			'	Next
+			'EndIf
+			Print "["+score[0]+","+score[1]+","+score[2]+"] "+tot
+		
+			Global g:grammar=grammar.fromfile("grammars/insults.txt")
+			l:TList=New TList
+			minerr=-1
+			For name$=EachIn g.symbols.keys()
+				If name[0]=Asc("$")	'if this is a beginning insult
+					Local keyscore[]
+					keyscore=scorekey(name)
+					err#=0
+					For i=0 To 2
+						err:+Abs(keyscore[i]-score[i])
+					Next
+					Print name+" "+err
+					If err<minerr Or minerr=-1
+						l=New TList
+						l.addlast name
+						minerr=err
+					ElseIf err=minerr
+						l.addlast name
+					EndIf
+				EndIf
+			Next
+			key$=String(picklist(l))
+			Print "picked "+key
+			txt$=g.fill(key)
+			fight(game.curmode).insult Self,txt
+			Print "I say: "+txt
+			
+			score=scorekey(key)
+
+			
+			adds=0
+			If score[0]>0
+				cloud.addthought New outragethought
+				opponent.cloud.addthought New ragethought
+				adds:+1
+			ElseIf score[0]<0
+				cloud.addthought New ragethought
+				opponent.cloud.addthought New outragethought
+				adds:+1
+			EndIf
+			If score[1]>0
+				cloud.addthought New witthought
+				opponent.cloud.addthought New dullthought
+				adds:+1
+			ElseIf score[1]<0
+				cloud.addthought New dullthought
+				opponent.cloud.addthought New witthought
+				adds:+1
+			EndIf
+			If score[2]>0
+				cloud.addthought New lovethought
+				opponent.cloud.addthought New pleadthought
+				adds:+1
+			ElseIf score[2]<0
+				cloud.addthought New pleadthought
+				opponent.cloud.addthought New lovethought
+				adds:+1
+			EndIf
+			maxadds=poisson(1.6)
+			If adds<maxadds
+				For c=1 To maxadds-adds
+					cloud.addrandomthought
+				Next
+			EndIf
+			selection=New TList
+	End Method
+	
 	Method fence()
 		If opponent.stance=stance_block And opponent.ostance=ostance And opponent.ostance	'opponent can block
 			opponent.hit=0
 			If (swordtip.px-opponent.lhand.px)*dir>0	'if swords cross
-				dx#=swordtip.px-opponent.lhand.px
 				swordtip.px=opponent.lhand.px
-				swordtip.px=swordtip.x-dx*.5
+				swordtip.px=swordtip.x
 				swordtip.py=swordtip.y
 				'stumble:-1.6*dir
 				'swordtip.px:-dir*size*2
@@ -819,6 +989,13 @@ Type skeleton
 		For j:joint=EachIn joints
 			j.draw
 		Next
+		
+		cloud.draw
+		For t:thought=EachIn selection
+			SetAlpha .4
+			Drawzoomcircle t.x+cloud.cx,t.y+cloud.cy,20
+			SetAlpha 1
+		Next		
 		
 		'DrawText stance,gx,topspine.y-50
 	End Method
@@ -850,7 +1027,7 @@ Type speech
 	End Function
 	
 	Method update()
-		progress:+Len(txt)/50.0
+		progress:+Sqr(Len(txt))/10.0
 		If progress>Len(txt)
 			fade:-.001
 			fade:*.99
@@ -866,7 +1043,7 @@ Type speech
 		'wf.draw txt[..Int(progress)],zoomx(x),zoomy(y),20
 		tx#=x-wf.width(txt,size)/2
 		numlines=wf.width(txt,size)/150
-		ty#=y-numlines*wf.height(size)
+		ty#=y-(numlines-1)*wf.height(size)
 		If progress>Len(txt)-1
 			top=Len(txt)-1
 		Else
@@ -875,11 +1052,6 @@ Type speech
 		mx#=0
 		newline=0
 		
-		SetBlend ALPHABLEND
-		SetAlpha .1
-		SetColor 0,0,0
-		DrawRect zoomx(tx),zoomy(ty),150,numlines*wf.height(size)
-
 		SetBlend MASKBLEND
 		SetColor 0,0,0
 		For i=0 To top
@@ -935,11 +1107,14 @@ Type fight Extends gamemode
 		hero.ai
 		villain.ai
 		
-		gi.update
-		If gi.out
-			insult hero,gi.out.value()
-			gi.reset
-		EndIf
+		'gi.update
+		'If gi.out
+		'	insult hero,gi.out.value()
+		'	gi.reset
+		'EndIf
+		
+		hero.mouseselection
+		villain.aiselection
 		
 		Rem
 		If KeyHit(KEY_ENTER)
@@ -950,8 +1125,10 @@ Type fight Extends gamemode
 		EndRem
 		
 		If sp
-			hero.relax
-			villain.relax
+			If sp.fade=1
+				hero.relax
+				villain.relax
+			EndIf
 			sp.update
 			If sp.fade<=.4
 				sp=Null
@@ -1016,7 +1193,7 @@ Type fight Extends gamemode
 		If sp
 			sp.draw
 		Else
-			gi.draw
+			'gi.draw
 		EndIf
 		
 	End Method

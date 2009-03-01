@@ -119,17 +119,3 @@ Function DrawZoomTexturedPoly(image:TImage, poly:Float[] )
 	Wend
 	DrawTexturedPoly image, poly
 End Function
-
-Function ZoomX#(x#)
-	Return (x - panx) * zoom + gwidth / 2
-End Function
-Function ZoomY#(y#)
-	Return (y - pany) * zoom + gheight / 2
-End Function
-
-Function UnzoomX#(x#)
-	Return (x - gwidth / 2) / zoom + panx
-End Function
-Function UnzoomY#(y#)
-	Return (y - gheight / 2) / zoom + pany
-End Function
