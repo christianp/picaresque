@@ -66,6 +66,12 @@ Type thought
 		'verlet bit
 		vx#=x-ox
 		vy#=y-oy
+		v#=vx*vx+vy*vy
+		If v>9
+			v=Sqr(v)
+			vx:*3/v
+			vy:*3/v
+		EndIf
 		ox=x
 		oy=y
 		x:+vx*.9
@@ -158,6 +164,18 @@ Type thought
 		Next
 	End Method
 	
+	Method countfriends:TList(l:TList=Null)
+		If Not l l=New TList
+		If l.contains(Self) Return l
+		l.addlast Self
+		For t:thought=EachIn neighbours
+			If TTypeId.ForObject(Self)=TTypeId.ForObject(t)
+				t.countfriends(l)
+			EndIf
+		Next
+		Return l
+	End Method
+	
 	Method constrain()
 		px=0
 		py=0
@@ -182,6 +200,7 @@ Type thought
 			DrawzoomImage image,x+bx,y+by
 			SetAlpha 1
 			SetScale 1,1
+			'DrawText neighbours.count(),zoomx(x+bx),zoomy(y+by)
 	End Method
 	
 	Method drawlinks(bx#,by#)
@@ -269,7 +288,7 @@ Type thoughtcloud
 	
 	Method addrandomthought()
 		Local t:thought
-		Select Rand(1,6)
+		Select Rand(1,3)
 		Case 1
 			t=New lovethought
 		Case 2
@@ -309,8 +328,8 @@ Type thoughtcloud
 		dx:/thoughts.count()
 		dy:/thoughts.count()
 		For t:thought=EachIn thoughts
-			t.x:-dx*.1
-			t.y:-dy*.1
+		'	t.x:-dx*.1
+		'	t.y:-dy*.1
 		Next
 		maxr=Sqr(maxr)
 		If maxr>200
@@ -351,29 +370,6 @@ Type thoughtcloud
 	End Method
 End Type
 
-
-Function scorekey[](name$)
-	Local keyscore[3]
-	i=1
-	While i<Len(name)
-		Select Chr(name[i])
-		Case "o"
-			keyscore[0]:+1
-		Case "w"
-			keyscore[1]:+1
-		Case "l"
-			keyscore[2]:+1
-		Case "r"
-			keyscore[0]:-1
-		Case "d"
-			keyscore[1]:-1
-		Case "p"
-			keyscore[2]:-1
-		End Select
-		i:+1
-	Wend
-	Return keyscore
-End Function
 
 Const linksize#=80
 Const maxneighbours=3

@@ -264,9 +264,9 @@ Type skeleton
 	Field stance,ostance
 	Field swingacc#,swordan#,nswordan#,vswordan#
 	Field opponent:skeleton
-	Field hit
+	Field hit,hits
 	Field walking
-	Field aggression,defence
+	Field aggression#,defence#,love#
 	Field nextmove,thinktick
 	
 	
@@ -277,8 +277,9 @@ Type skeleton
 	Method New()
 		joints=New TList
 		bones=New TList
-		aggression=5
-		defence=30
+		aggression=0
+		defence=0
+		love=0
 		cloud=New thoughtcloud
 		For c=1 To 3
 			cloud.addrandomthought
@@ -372,8 +373,17 @@ Type skeleton
 	End Method
 	
 	Method ai()
-		If Rand(5)=1 And opponent.ostance And opponent.stance=stance_walk
-			parry
+		'If Rand(5)=1 And opponent.ostance And opponent.stance=stance_walk
+		'	parry
+		'	Return
+		'EndIf
+		If opponent.ostance And opponent.stance=stance_walk And defence>1 And defence>=opponent.defence
+			If stance<>stance_block
+				defence:-1
+			EndIf
+			If defence>0
+				parry
+			EndIf
 			Return
 		EndIf
 		
@@ -395,15 +405,21 @@ Type skeleton
 			EndIf
 			
 			If opponent.stance=stance_walk
-				'If Rand(defence)=1
-				'	relax
-				'Else
-					parry
-				'EndIf
-			Else
-				If Rand(aggression)=1 Or opponent.stance=stance_block
+				'If Rnd(0,defence)<=1
+				If defence<1 Or Rand(30)<=1
 					relax
 				Else
+					parry
+					defence:-1
+				EndIf
+			Else
+				'If Rnd(0,aggression)<=1 Or opponent.stance=stance_block
+				If aggression<1 Or aggression<opponent.aggression Or Rnd(0,aggression)<1
+					relax
+				Else
+					If stance<>stance_walk
+						aggression:-1
+					EndIf
 					thrust
 				EndIf
 				
@@ -413,12 +429,10 @@ Type skeleton
 	
 	Method thrust()
 					stance=stance_walk
-					Select Rand(1,3)
+					Select Rand(1,2)
 					Case 1
-						ostance=0
-					Case 2
 						ostance=stance_upswing
-					Case 3
+					Case 2
 						ostance=stance_downswing
 					End Select
 					nextmove=10
@@ -428,7 +442,7 @@ Type skeleton
 	Method parry()
 				stance=stance_block
 				ostance=opponent.ostance
-				nextmove=Rand(20,50)
+				nextmove=Rnd(50,100)/Sqr(aggression)
 				Return
 	End Method
 	
@@ -441,7 +455,7 @@ Type skeleton
 	
 	Method relax()
 					stance=0
-					nextmove=Rand(5,15)
+					nextmove=Rnd(1,2)*50/aggression
 					Return
 	End Method
 			
@@ -622,8 +636,8 @@ Type skeleton
 				If Abs(mx-opponent.mx)>size*10
 					walking=1
 				EndIf
-				swordan=-90
-				swordan=Rand(-30,30)
+				swordan=-90+Rand(0,20)
+				'swordan=Rand(-30,30)
 			End Select
 		Case stance_upswing
 			aimx=mx+size*2*dir
@@ -800,30 +814,89 @@ Type skeleton
 	Method thinkcloud()
 		tx=mx-dir*cloud.nmaxr
 		ty=head.y-cloud.nmaxr-size
-		cloud.cx:+(tx-cloud.cx)*.01
-		cloud.cy:+(ty-cloud.cy)*.01
+		cloud.cx:+(tx-cloud.cx)*.002
+		cloud.cy:+(ty-cloud.cy)*.002
 		cloud.update
-		If Rand(1000)=1
-			'cloud.addrandomthought
+		If Rand(50*Sqr(cloud.thoughts.count()))=1
+			cloud.addrandomthought
 		EndIf
+		
+		If love>0
+			'aggression:+love*.001
+			'defence:+love*.001
+			'love:*.999
+		EndIf
+		
+		'If aggression<2 aggression=2
+		'If defence<2 defence=2
 	End Method
 	
 	Method mouseselection()
+		t:thought=thought.pick(cloud.thoughts,unzoomx(MouseX()-cloud.cx),unzoomy(MouseY()-cloud.cy),linksize/4)
 		If MouseDown(1)
-			t:thought=thought.pick(cloud.thoughts,unzoomx(MouseX()-cloud.cx),unzoomy(MouseY()-cloud.cy),linksize/4)
 			If selection.contains(t) And t<>selection.last()
 				selection.removelast
-			ElseIf t And (Not selection.contains(t)) And selection.count()<3
-				If selection.count()=0 Or thought(selection.last()).neighbours.contains(t)
+			ElseIf t And (Not selection.contains(t))
+				If selection.count()=0
 					selection.addlast t
+				Else
+					t1:thought=thought(selection.first())
+					t2:thought=thought(selection.last())
+					If t2.neighbours.contains(t) And (selection.count()=1 Or (TTypeId.ForObject(t1)=TTypeId.ForObject(t) And TTypeId.ForObject(t2)=TTypeId.ForObject(t)))
+						selection.addlast t
+					EndIf
 				EndIf
 			EndIf
-		ElseIf selection.count()
-			quip
+		Else
+			Select selection.count()
+			Case 0
+			Case 1
+				If t 
+					quip
+				Else
+					selection=New TList
+				EndIf
+			Case 2
+				If TTypeId.ForObject(selection.first())=TTypeId.ForObject(selection.last())
+					quip
+				Else
+					swapthoughts
+				EndIf
+			Default
+				quip
+			End Select
 		EndIf
 	End Method
 	
 	Method aiselection()
+		If Rand(100)>1 Return
+		If cloud.thoughts.count()=0 Return
+		
+		l:TList=cloud.thoughts.copy()
+		While l.count()
+			l2:TList=thought(l.first()).countfriends()
+			If l2.count()>=3 Or Rand(20)=1
+				selection=l2
+				quip
+				Return
+			Else
+				For t:thought=EachIn l2
+					l.remove t
+				Next
+			EndIf
+		Wend
+		
+		'if you get here no chains to make, swap two random things
+		t:thought=thought(picklist(cloud.thoughts))
+		If Not t.neighbours.count() Return
+		
+		l.addlast t
+		l.addlast picklist(t.neighbours)
+		selection=l
+		swapthoughts
+	
+	
+		Return
 		Function thoughtsort(o1:Object,o2:Object)
 			t1:thought=thought(o1)
 			t2:thought=thought(o2)
@@ -836,12 +909,11 @@ Type skeleton
 		End Function
 	
 	
-		If selection.count() And Rand(1500/(selection.count()*cloud.thoughts.count()))=1
+		If selection.count()=2 And Rand(1500/(selection.count()*cloud.thoughts.count()))=1
 			quip
 		EndIf
-		If Rand(100)>1 Return
 		If selection.count() 
-			If selection.count()<3
+			If selection.count()<2
 				l:TList=New TList
 				For t:thought=EachIn thought(selection.last()).neighbours
 					If Not selection.contains(t)
@@ -855,12 +927,73 @@ Type skeleton
 					selection.removelast
 				EndIf
 			EndIf
-		Else
+		ElseIf cloud.thoughts.count()
 			selection.addlast picklist(cloud.thoughts,sqrrand)
 		EndIf
 	End Method
 	
-	Method quip[]()
+	Method swapthoughts()
+		t1:thought=thought(selection.first())
+		t2:thought=thought(selection.last())
+		px#=t1.x
+		py#=t1.y
+		pox#=t1.ox
+		poy#=t1.oy
+		t1.x=t2.x
+		t1.y=t2.y
+		t1.ox=t2.ox
+		t1.oy=t2.oy
+		t2.x=px
+		t2.y=py
+		t2.ox=pox
+		t2.oy=poy
+		selection=New TList
+		For t3:thought=EachIn t1.neighbours
+			t3.neighbours.remove t1
+		Next
+		For t3:thought=EachIn t2.neighbours
+			t3.neighbours.remove t2
+		Next
+		t1.neighbours.remove t2
+		t2.neighbours.remove t1
+		pneighbours:TList=t1.neighbours
+		t1.neighbours=t2.neighbours
+		t2.neighbours=pneighbours
+		For t3:thought=EachIn t1.neighbours
+			If Not t3.neighbours.contains(t1)
+				t3.neighbours.addlast t1
+			EndIf
+		Next
+		For t3:thought=EachIn t2.neighbours
+			If Not t3.neighbours.contains(t2)
+				t3.neighbours.addlast t2
+			EndIf
+		Next
+		t1.neighbours.addlast t2
+		t2.neighbours.addlast t1
+		
+		Rem
+		l1:TList=t1.countfriends()
+		If l1.count()>=3
+			Print l1.count()
+			For t:thought=EachIn l1
+				cloud.thoughts.remove t
+				For t2:thought=EachIn t.neighbours
+					t2.neighbours.remove t
+				Next
+			Next
+		EndIf
+		l2:TList=t2.countfriends()
+		'Print score1
+		'Print score2
+	
+		Return
+		EndRem
+	End Method
+		
+	Method quip()
+		
+		
 		If fight(game.curmode).sp Return
 
 			For t:thought=EachIn selection
@@ -886,7 +1019,9 @@ Type skeleton
 			'	Next
 			'EndIf
 			Print "["+score[0]+","+score[1]+","+score[2]+"] "+tot
-		
+
+			benefitquip score
+					
 			Global g:grammar=grammar.fromfile("grammars/insults.txt")
 			l:TList=New TList
 			minerr=-1
@@ -898,7 +1033,6 @@ Type skeleton
 					For i=0 To 2
 						err:+Abs(keyscore[i]-score[i])
 					Next
-					Print name+" "+err
 					If err<minerr Or minerr=-1
 						l=New TList
 						l.addlast name
@@ -914,45 +1048,65 @@ Type skeleton
 			fight(game.curmode).insult Self,txt
 			Print "I say: "+txt
 			
+			Rem
 			score=scorekey(key)
 
-			
 			adds=0
 			If score[0]>0
-				cloud.addthought New outragethought
-				opponent.cloud.addthought New ragethought
-				adds:+1
+				'cloud.addthought New outragethought
+				'opponent.cloud.addthought New ragethought
+				'adds:+1
 			ElseIf score[0]<0
-				cloud.addthought New ragethought
-				opponent.cloud.addthought New outragethought
-				adds:+1
+				'cloud.addthought New ragethought
+				'opponent.cloud.addthought New outragethought
+				'adds:+1
 			EndIf
 			If score[1]>0
-				cloud.addthought New witthought
-				opponent.cloud.addthought New dullthought
-				adds:+1
+				'cloud.addthought New witthought
+				'opponent.cloud.addthought New dullthought
+				'adds:+1
 			ElseIf score[1]<0
-				cloud.addthought New dullthought
-				opponent.cloud.addthought New witthought
-				adds:+1
+				'cloud.addthought New dullthought
+				'opponent.cloud.addthought New witthought
+				'adds:+1
 			EndIf
 			If score[2]>0
-				cloud.addthought New lovethought
-				opponent.cloud.addthought New pleadthought
-				adds:+1
+				'cloud.addthought New lovethought
+				'opponent.cloud.addthought New pleadthought
+				'adds:+1
 			ElseIf score[2]<0
-				cloud.addthought New pleadthought
-				opponent.cloud.addthought New lovethought
-				adds:+1
+				'cloud.addthought New pleadthought
+				'opponent.cloud.addthought New lovethought
+				'adds:+1
 			EndIf
-			maxadds=poisson(1.6)
+			maxadds=poisson(2.5)
+			If maxadds<1 maxadds=1
 			If adds<maxadds
 				For c=1 To maxadds-adds
-					cloud.addrandomthought
+					'cloud.addrandomthought
 				Next
 			EndIf
+			
+			EndRem
+			
 			selection=New TList
+			
+			
+
 	End Method
+	
+	Method benefitquip(score[])
+		Local res#[3]
+		For i=0 To 2
+			res[i]=Int(score[i]^1.5)
+			Print score[i]+">>"+res[i]
+		Next
+		
+		aggression:+res[0]
+		defence:+res[1]
+		love:+res[1]
+	End Method
+		
 	
 	Method fence()
 		If opponent.stance=stance_block And opponent.ostance=ostance And opponent.ostance	'opponent can block
@@ -972,6 +1126,16 @@ Type skeleton
 			If Not opponent.hit
 				opponent.stumble:+dir*8
 				opponent.hit=1
+				opponent.hits:+1
+				
+				If opponent.hits>=20
+					fight(game.curmode).victory Self
+				EndIf
+				
+				love:+1
+				opponent.love:-1
+				'opponent.defence:-1
+				'opponent.aggression:*.8
 			EndIf
 		Else
 			opponent.hit=0
@@ -997,7 +1161,8 @@ Type skeleton
 			SetAlpha 1
 		Next		
 		
-		'DrawText stance,gx,topspine.y-50
+		SetColor 0,0,0
+		DrawText Int(aggression)+","+Int(defence)+","+Int(love)+" ("+stance+") "+hits,zoomx(gx),zoomy(lfoot.y)
 	End Method
 
 End Type
@@ -1008,6 +1173,30 @@ Function groundheight#(x#)
 
 End Function
 
+
+
+Function scorekey[](name$)
+	Local keyscore[3]
+	i=1
+	While i<Len(name)
+		Select Chr(name[i])
+		Case "o"
+			keyscore[0]:+1
+		Case "w"
+			keyscore[1]:+1
+		Case "l"
+			keyscore[2]:+1
+		Case "r"
+			keyscore[0]:-1
+		Case "d"
+			keyscore[1]:-1
+		Case "p"
+			keyscore[2]:-1
+		End Select
+		i:+1
+	Wend
+	Return keyscore
+End Function
 Type speech
 	Field x#,y#,txt$
 	Field progress#
@@ -1081,6 +1270,7 @@ Type fight Extends gamemode
 	
 	Field g:grammar
 	Field gi:ginput
+	Field victor:skeleton
 	
 	Field sp:speech
 	
@@ -1125,13 +1315,20 @@ Type fight Extends gamemode
 		EndRem
 		
 		If sp
-			If sp.fade=1
+			If victor
 				hero.relax
 				villain.relax
 			EndIf
 			sp.update
 			If sp.fade<=.4
 				sp=Null
+				If victor
+					If victor=hero
+						win
+					Else
+						lose
+					EndIf
+				EndIf
 			EndIf
 		EndIf
 		
@@ -1169,6 +1366,12 @@ Type fight Extends gamemode
 		EndIf
 		
 	End Method
+	
+	Method victory(s:skeleton)
+		insult s.opponent,"Mercy!"
+		victor=s
+	End Method
+	
 	Method win()
 		status=1
 	End Method

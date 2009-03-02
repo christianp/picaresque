@@ -1,12 +1,12 @@
 $o :: Cad!;
 $w :: Take this!;
-$l :: Heloise!;
+$l :: ~darling~!;
 $r :: DIE!;
 $d :: Umm...;
 $p :: Ow!;
 $ow :: You villainous wretch;
-$ol :: This one's for Heloise!;
-$wl :: My love for Heloise grows ever stronger;
+$ol :: This one's for ~darling~!;
+$wl :: My love for ~darling~ grows ever stronger;
 $oo :: You'll pay for that!;
 $ww :: Ah, I see you use the Defebvre defence;
 $ll :: Nothing can stand in my way!;
