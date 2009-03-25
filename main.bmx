@@ -14,6 +14,7 @@ Include "font.bmx"
 Include "texpoly.bmx"
 Include "duel.bmx"
 Include "thoughts.bmx"
+Include "syllogisms.bmx"
 
 Global world:db,templates:db
 Global game:tgame
@@ -24,6 +25,7 @@ Type tgame
 	Field opponent:character
 	
 	Field curmode:gamemode
+	Field curdatum:datum
 	
 	
 	'INIT GAME STUFF
@@ -41,6 +43,7 @@ Type tgame
 		grammar.loadall
 		world=db.dirload("world")
 		templates=db.dirload("templates",1)
+		initsyllogism
 	End Method
 	
 	Method init()
@@ -85,6 +88,8 @@ Type tgame
 		Case "chapter"
 			Print "CHAPTER"
 			Return romannumeral(progress)
+		Case "template"	'fill in info from template
+			Return curdatum.property(bits[1])
 		Default
 			Return ""
 		End Select
@@ -222,8 +227,11 @@ Type narration Extends gamemode
 		n:narration=New narration
 		n.kind=kind
 
-		temp$=templates.pick(kind)
-		n.text=template.Create(temp).fill()
+		d:datum=templates.pickdatum(kind)
+		game.curdatum=d
+		temp$=d.value
+		style$=templates.filter("type=style & kind="+kind).pick()
+		n.text=filltemplate(style+temp)'template.Create(style+temp).fill()
 		n.tb=textblock.Create(n.text,gfxwidth-60,.5)
 		Return n
 	End Function
@@ -255,7 +263,7 @@ game.init
 'debateme
 'Wend
 
-game.curmode=New fight
+'game.curmode=New debate
 
 Repeat
 	game.update

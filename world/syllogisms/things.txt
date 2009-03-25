@@ -1,0 +1,7 @@
+type syllogism
+kind thing
+
+God
+The Pope
+The Devil
+You

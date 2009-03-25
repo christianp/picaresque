@@ -1,11 +1,6 @@
 type journey
 make woman character female
 
-^ align centre, size 100^Chapter $chapter$
-
-^ size 150 ^$curlo$
-
-^align left, font print, size 100 ^
 On the way $hero$ met a kindly nudist.
 
 "I can see your lady parts!" he exclaimed, on seeing her lady parts.

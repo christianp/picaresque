@@ -1,0 +1,14 @@
+type syllogism
+kind noun
+
+slave
+peasant
+king
+priest
+horse
+dog
+man, men
+woman, women
+person, people
+animal
+liar

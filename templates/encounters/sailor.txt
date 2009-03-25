@@ -1,0 +1,12 @@
+type encounter
+title The Sailor
+
+$hero$ stood on the dock, trying to look like he fitted in.
+
+A sailor approached him, tutting theatrically.
+
+"Darling, that stripey shirt is SO outmode! A crew just arrived yesterday from a trip round the world, half of them were dying from scurvy, the other half had been turned into swine by a sexy witch, and they ALL looked better than you. Let Hugo help."
+
+"I don't suppose the hat helps at all, does it?"
+
+"No, dear."

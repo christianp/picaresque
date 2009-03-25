@@ -1,0 +1,6 @@
+type style
+kind encounter
+
+^ align centre, size 120^$template.title$
+
+^align left, font print, size 100 ^

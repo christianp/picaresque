@@ -1,0 +1,8 @@
+type style
+kind journey
+
+^ align centre, size 100^Chapter $chapter$
+
+^ size 150 ^$curlo$
+
+^align left, font print, size 100 ^

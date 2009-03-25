@@ -1,13 +1,6 @@
 type intro
+subtitle The Scribe of $home$
 
-^ align centre, font headline ^
-The Tale of $hero$
-
-^size 65 ^or,
-
-^size 100 ^The Scribe of $home$
-
-^align left, font print ^
 A long time ago, in $home.country$, there was a young boy of $home$ called $hero.fullname$. He had a penpal called $darling.fullname$, and they would write to each other whenever they could.
 
 One day, $darling$'s step-father, the villainous $nemesis.fullname$, read one of $hero$'s letters, and was outraged by what he saw. He sent $darling$ away to a convent, and whipped $hero$ to within an inch of his life.

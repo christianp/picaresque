@@ -1,0 +1,11 @@
+type syllogism
+kind adjective
+
+good
+bad
+virtuous
+wicked
+sentient
+free
+oppressed
+holy

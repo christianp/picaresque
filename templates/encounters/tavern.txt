@@ -1,4 +1,5 @@
 type encounter
+title Blind $opponent.name$
 
 $hero$ headed to the Tavern, where he encountered a villainous-looking smuggler called $opponent.name$.
 

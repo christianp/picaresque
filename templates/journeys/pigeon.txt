@@ -1,0 +1,15 @@
+type journey
+
+One day, while $hero$ was looking wistfully out of a window, a pigeon landed next to him with a great air of pomp and Purpose. It then began to peck at its leg.
+
+There was a note attached to it! $hero$ bashed the pigeon on the head and removed the note.
+
+^align centre, font handwriting^am in $curlo$. where r u? pls cm rscue me. $darling$ xoxo
+
+PS hope pigeon found u, take gd care of him, my fave.
+
+^align left, font print^
+
+Pausing just a moment to reflect on whether that really was how homing pigeons worked, $hero$ thanked his lucky stars and started packing his things.
+
+$darling$ was alive, and in $curlo$!

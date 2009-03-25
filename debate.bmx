@@ -1,3 +1,4 @@
+Rem
 Type argument
 	Field statement:lterm
 	Field philosophy:lterm
@@ -153,9 +154,291 @@ Type debate Extends gamemode
 		gi.draw
 	End Method
 End Type
+EndRem
 
-Function debateme()
+Type blankline
+	Field texts$[]
+	Field blanks:TList
+	Field font:wfont
 	
-	done=0
-	End
-End Function
+	Method New()
+		blanks=New TList
+	End Method
+	
+	Function Create:blankline(p:premise,font:wfont)
+		bl:blankline=New blankline
+		line$=p.blankform()
+		bl.texts=line.split(":")
+		bl.blanks.addlast blank.Create(p.firstthing(),font)
+		bl.blanks.addlast blank.Create(p.secondthing(),font)
+		bl.font=font
+		Return bl
+	End Function
+	
+	Method complete()
+		For b:blank=EachIn blanks
+			If Not b.complete()
+				Return False
+			EndIf
+		Next
+		Return True
+	End Method
+	
+	Method draw(x#,y#)
+		x:-width()/2
+		l:TList=blanks.copy()
+		For t$=EachIn texts
+			SetColor 0,0,0
+			font.draw t,x,y,30
+			x:+font.width(t,30)
+			If l.count()
+				b:blank=blank(l.removefirst())
+				b.draw x,y
+				x:+b.width()
+			EndIf
+		Next
+		For b:blank=EachIn l
+			b.draw x,y
+			x:+b.width()
+		Next
+	End Method
+	
+	Method width#()
+		w#=0
+		For t$=EachIn texts
+			w:+font.width(t,30)
+		Next
+		For b:blank=EachIn blanks
+			w:+b.width()
+		Next
+		Return w
+	End Method
+End Type
+
+Type blank
+	Field value$
+	Field hold:magpoetry
+	Field font:wfont
+	Field x#,y#
+	
+	Function Create:blank(value$,font:wfont)
+		b:blank=New blank
+		b.value=value
+		b.font=font
+		Return b
+	End Function
+	
+	Method complete()
+		If hold And hold.value=value Return True Else Return False
+	End Method
+	
+	Method draw(dx#,dy#)
+		x=dx
+		y=dy
+		SetColor 0,0,0
+		DrawRect x,y-font.height(30),width(),font.height(30)
+		If hold
+			SetColor 255,255,255
+			font.draw hold.value,x,y,30
+		EndIf
+	End Method
+	
+	Method width()
+		If hold
+			Return font.width(hold.value,30)
+		Else
+			Return font.width("xxxxxxx",30)
+		EndIf
+	End Method
+	
+End Type
+
+Type magpoetry
+	Field value$
+	Field x#,y#
+	Field font:wfont
+	Field b:blank
+	
+	Function Create:magpoetry(value$,font:wfont)
+		m:magpoetry=New magpoetry
+		m.value=value
+		m.x=Rnd(.2,.8)*gfxwidth
+		m.y=Rnd(.7,.9)*gfxheight
+		m.font=font
+		Return m
+	End Function
+	
+	Method draw()
+		If b
+			x=b.x
+			y=b.y
+			Return
+		EndIf
+		SetColor 0,0,0
+		DrawRect x,y-font.height(30),font.width(value,30),font.height(30)
+		SetColor 255,255,255
+		font.draw value,x,y,30
+	End Method
+	
+	Method width()
+		Return font.width(value,30)
+	End Method
+	
+End Type
+
+
+Type debate Extends gamemode
+	Field blanklines:TList
+	Field words:TList,blanks:TList
+	Field mstate
+	Field hold:magpoetry,offx#,offy#
+	Field font:wfont
+	
+	
+	Method New()
+		font=wfont(dfonts.valueforkey("print"))
+		makesyllogism
+	End Method
+	
+	
+	Method makesyllogism()
+		
+		Local ps:premise[3]
+		
+		premises=New TList
+		ps[0]=premise.generate()
+		premise.addpremise(ps[0])
+		While Not ps[2]
+			tick:+1
+			If tick>50
+				tick=0
+				premises=New TList
+				ps[0]=premise.generate()
+			EndIf
+			ps[1]=premise.generate()
+			ps[2]=premise.combine(ps[0],ps[1])
+		Wend
+		
+		blanklines=New TList
+		words=New TList
+		For p:premise=EachIn ps
+			Print p.repr()
+			blanklines.addlast blankline.Create(p,font)
+			words.addlast magpoetry.Create(p.firstthing(),font)
+			words.addlast magpoetry.Create(p.secondthing(),font)
+		Next
+		blanks=New TList
+		For bl:blankline=EachIn blanklines
+			For b:blank=EachIn bl.blanks
+				blanks.addlast b
+			Next
+		Next
+		l1:TList=words.copy()
+		l2:TList=blanks.copy()
+		For c=1 To 3
+			b:blank=blank(picklist(l2))
+			l2.remove b
+			For m:magpoetry=EachIn l1
+				If m.value=b.value
+					l1.remove m
+					b.hold=m
+					m.b=b
+					m.x=b.x
+					m.y=b.y
+					Exit
+				EndIf
+			Next
+		Next
+	End Method
+	
+	Method update()
+		mx=MouseX()
+		my=MouseY()
+		Select mstate
+		Case 0
+			If MouseDown(1)
+				If pickword(mx,my)
+					mstate=1
+				Else
+					mstate=2
+				EndIf
+			EndIf
+		Case 1
+			If hold.b
+				dx#=mx-hold.b.x
+				dy#=my-hold.b.y
+				d#=Sqr(dx*dx+dy*dy)
+				If mx<hold.b.x Or mx>hold.b.x+hold.b.width() Or my<hold.b.y-font.height(30) Or my>hold.b.y
+					hold.b.hold=Null
+					hold.b=Null
+				EndIf
+			Else
+				hold.x=mx+offx
+				hold.y=my+offy
+			EndIf
+			If Not MouseDown(1)
+				dropword
+				mstate=0
+				If complete()
+					status=1
+				EndIf
+			EndIf
+		Case 2
+			If Not MouseDown(1)
+				mstate=0
+			EndIf
+		End Select
+	End Method
+	
+	Method complete()
+		For b:blank=EachIn blanks
+			If Not b.complete() Return False
+		Next
+		Return True
+	End Method
+	
+	Method pickword(x,y)
+		hold=Null
+		h#=font.height(30)
+		For m:magpoetry=EachIn words
+			SetColor 0,0,0
+			DrawLine x,y,m.x,m.y
+			If x>=m.x And x<=m.x+font.width(m.value,30) And y>=m.y-h And y<=m.y
+				hold=m
+				offx=m.x-x
+				offy=m.y-y
+			EndIf
+		Next
+		If hold DrawRect 0,0,50,50
+		Return hold<>Null
+	End Method
+	
+	Method dropword()
+		For b:blank=EachIn blanks
+			If Not b.hold
+				If (hold.x<b.x+b.width() And hold.x+font.width(hold.value,30)>b.x) And (hold.y<b.y+font.height(30) And hold.y+font.height(30)>b.y)
+					b.hold=hold
+					hold.x=b.x
+					hold.y=b.y
+					hold.b=b
+					Return True
+				EndIf
+			EndIf
+		Next
+		Return False
+				
+	End Method
+	
+	Method draw()
+		interval#=font.height(30)*1.5
+		y#=gfxheight/2-interval*2
+		For bl:blankline=EachIn blanklines
+			bl.draw gfxwidth/2,y
+			y:+interval
+		Next
+		
+		For m:magpoetry=EachIn words
+			m.draw
+		Next
+	End Method
+End Type

@@ -39,6 +39,10 @@ Type lterm
 			Return lnot.Create(lterm.parse(expr[1..]))
 		EndIf
 		
+		If Chr(expr[0])="?"
+			Return lexists.Create(lterm.parse(expr[1..]))
+		EndIf
+		
 		If Chr(expr[0])="("
 			Return lterm.parse(expr[1..Len(expr)-1])
 		EndIf
@@ -46,15 +50,40 @@ Type lterm
 		Return lconstant.Create(expr)
 	End Function
 
-	Method oldtruth(assumptions:TList) Abstract
+	'Method oldtruth(assumptions:TList) Abstract
 	
 	Method repr$() Abstract
+	
+	Method copy:lterm() Abstract
+	
+	Method relabel(i) Abstract
 End Type
 
 Type lpredicate Extends lterm
 	Field t1:lterm
 End Type
 
+
+Type lexists Extends lpredicate
+	Function Create:lexists(t1:lterm)
+		e:lexists=New lexists
+		e.t1=t1
+		Return e
+	End Function
+	
+	Method repr$()
+		Return "? ( "+t1.repr()+" )"
+	End Method
+	
+	Method copy:lterm()
+		Return lexists.Create(t1.copy())
+	End Method
+
+	Method relabel(i)
+		Return	'this is a different variable to the one we were relabelling now
+	End Method
+End Type
+		
 Type lnot Extends lpredicate
 	
 	Function Create:lnot(t1:lterm)
@@ -63,6 +92,7 @@ Type lnot Extends lpredicate
 		Return n
 	End Function
 
+	Rem
 	Method oldtruth(assumptions:TList)
 		debugo "not: "+repr()
 		If lconstant(t1)
@@ -111,9 +141,18 @@ Type lnot Extends lpredicate
 			Return False
 		End Select
 	End Method
+	EndRem
 	
 	Method repr$()
 		Return "! ( "+t1.repr()+" )"
+	End Method
+	
+	Method copy:lterm()
+		Return lnot.Create(t1.copy())
+	End Method
+	
+	Method relabel(i)
+		t1.relabel i
 	End Method
 End Type
 
@@ -127,6 +166,7 @@ Type land Extends lpredicate
 		Return a
 	End Function
 
+	Rem
 	Method oldtruth(assumptions:TList)
 		debugo "and: "+repr()
 		If t1.oldtruth(assumptions) 
@@ -135,9 +175,19 @@ Type land Extends lpredicate
 		EndIf
 		Return t2.oldtruth(assumptions)
 	End Method
+	EndRem
 	
 	Method repr$()
 		Return "( "+t1.repr()+" ) & ( "+t2.repr()+" )"
+	End Method
+
+	Method copy:lterm()
+		Return land.Create(t1.copy(),t2.copy())
+	End Method
+	
+	Method relabel(i)
+		t1.relabel i
+		t2.relabel i
 	End Method
 End Type
 
@@ -151,6 +201,7 @@ Type lor Extends lpredicate
 		Return o
 	End Function
 
+	Rem
 	Method oldtruth(assumptions:TList)
 		debugo "or: "+repr()
 		If t1.oldtruth(assumptions.copy()) And t2.oldtruth(assumptions.copy())
@@ -161,9 +212,19 @@ Type lor Extends lpredicate
 			Return False
 		EndIf
 	End Method
-
+	EndRem
+	
 	Method repr$()
 		Return "( "+t1.repr()+" ) V ( "+t2.repr()+")"
+	End Method
+
+	Method copy:lterm()
+		Return lor.Create(t1.copy(),t2.copy())
+	End Method
+	
+	Method relabel(i)
+		t1.relabel i
+		t2.relabel i
 	End Method
 End Type
 
@@ -177,6 +238,7 @@ Type limplies Extends lpredicate
 		Return i
 	End Function
 
+	Rem
 	Method oldtruth(assumptions:TList)
 		debugo "implies: "+repr()
 		If lnot.Create(t1).oldtruth(assumptions.copy()) And t2.oldtruth(assumptions.copy())
@@ -187,21 +249,33 @@ Type limplies Extends lpredicate
 			Return False
 		EndIf
 	End Method
-
+	EndRem
+	
 	Method repr$()
 		Return "( "+t1.repr()+" ) -> ( "+t2.repr()+" )"
+	End Method
+	
+	Method copy:lterm()
+		Return limplies.Create(t1.copy(),t2.copy())
+	End Method
+	
+	Method relabel(i)
+		t1.relabel i
+		t2.relabel i
 	End Method
 End Type
 
 Type lconstant Extends lterm
 	Field name$
+	Field i
 	
 	Function Create:lconstant(name$)
 		c:lconstant=New lconstant
 		c.name=name
 		Return c
 	End Function 
-
+	
+	Rem
 	Method oldtruth(assumptions:TList)
 		debugo "constant: "+repr()
 		For n:lnot=EachIn assumptions
@@ -213,9 +287,24 @@ Type lconstant Extends lterm
 		'print "false"
 		Return False
 	End Method
-
+	EndRem
+	
+	Method equal(c:lconstant)
+		If name=c.name And (i=0 Or c.i=0 Or c.i=i)
+			Return True
+		EndIf
+	End Method
+	
 	Method repr$()
 		Return name
+	End Method
+	
+	Method copy:lterm()
+		Return lconstant.Create(name)
+	End Method
+	
+	Method relabel(_i)
+		i=_i
 	End Method
 End Type
 
@@ -225,13 +314,13 @@ Function truth(t:lterm)
 	Return truthof(l)
 End Function
 
-Function truthof(unchecked:TList,assumptions:TList=Null)
+Function truthof(unchecked:TList,assumptions:TList=Null,numlabels=0)
 	If Not assumptions
 		assumptions=New TList
 	EndIf
 	While unchecked.count()
 		t:lterm=lterm(unchecked.removefirst())
-		'print "   "+t.repr()
+		'Print "   "+t.repr()
 		assumptions.addlast t
 		Select TTypeId.ForObject(t).name()
 		Case "lnot"
@@ -247,7 +336,7 @@ Function truthof(unchecked:TList,assumptions:TList=Null)
 				u2.addlast lnot.Create(a.t1)
 				u3:TList=unchecked.copy()
 				u3.addlast lnot.Create(a.t2)
-				If truthof(u2,assumptions.copy()) And truthof(u3,assumptions.copy())
+				If truthof(u2,assumptions.copy(),numlabels) And truthof(u3,assumptions.copy(),numlabels)
 					'print "--True"
 					Return True
 				EndIf
@@ -265,7 +354,7 @@ Function truthof(unchecked:TList,assumptions:TList=Null)
 				'print "not A - if we already have A, done"
 				c:lconstant=lconstant(t1)
 				For c2:lconstant=EachIn assumptions
-					If c2.name=c.name
+					If c2.equal(c)
 						'print "--True"
 						Return True
 					EndIf
@@ -283,7 +372,7 @@ Function truthof(unchecked:TList,assumptions:TList=Null)
 			u2.addlast o.t1
 			u3:TList=unchecked.copy()
 			u3.addlast o.t2
-			If truthof(u2,assumptions.copy()) And truthof(u3,assumptions.copy())
+			If truthof(u2,assumptions.copy(),numlabels) And truthof(u3,assumptions.copy(),numlabels)
 				'print "--True"
 				Return True
 			EndIf
@@ -294,7 +383,7 @@ Function truthof(unchecked:TList,assumptions:TList=Null)
 			u2.addlast lnot.Create(i.t1)
 			u3:TList=unchecked.copy()
 			u3.addlast i.t2
-			If truthof(u2,assumptions.copy()) And truthof(u3,assumptions.copy())
+			If truthof(u2,assumptions.copy(),numlabels) And truthof(u3,assumptions.copy(),numlabels)
 				'print "--True"
 				Return True
 			EndIf
@@ -302,11 +391,16 @@ Function truthof(unchecked:TList,assumptions:TList=Null)
 			'print "A - if we have not A, done"
 			c:lconstant=lconstant(t)
 			For n:lnot=EachIn assumptions
-				If lconstant(n.t1) And lconstant(n.t1).name=c.name
+				If lconstant(n.t1) And lconstant(n.t1).equal(c)
 					'print "--True"
 					Return True
 				EndIf
 			Next
+		Case "lexists"
+			t1:lterm=lexists(t).t1.copy()
+			numlabels:+1
+			t1.relabel numlabels
+			unchecked.addlast t1
 		End Select
 	Wend
 	'print "--False"
@@ -346,11 +440,15 @@ Function cleversplit$[](in$,m$,lb$="(",rb$=")")
 	Return o
 End Function
 
+
 Rem
+Function debugo(txt$)
+	Print txt
+End Function
 While 1
 	in$=Input(">")
 	l:TList=New TList
-	'print lterm.parse(in).repr()
-	'print lterm.parse(in).truth(l)
+	Print lterm.parse(in).repr()
+	Print truth(lterm.parse(in))
 Wend
-endrem
+EndRem

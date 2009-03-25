@@ -83,8 +83,24 @@ Type db Extends TList
 	End Method
 	
 	Method pick$(kind$="")
-		If kind Return filter("type="+kind).pick()
-		Return datum(picklist(Self)).value
+		d:datum=pickdatum(kind)
+		If d Return d.value Else Return ""
+	End Method
+	
+	Method pickdatum:datum(kind$="")
+		If kind Return filter("type="+kind).pickdatum()
+		If Not count() Return Null
+		Return datum(picklist(Self))
+	End Method		
+	
+	Method values$[]()
+		Local s$[count()]
+		i=0
+		For d:datum=EachIn Self
+			s[i]=d.value
+			i:+1
+		Next
+		Return s
 	End Method
 End Type
 

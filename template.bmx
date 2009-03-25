@@ -42,3 +42,19 @@ Type template
 		Return s
 	End Method
 End Type
+
+Function filltemplate$(temp$)
+	While temp.contains("$")
+		Local splits$[]=temp.split("$")
+		s$=""
+		For i=0 To Len(splits)-1
+			If i Mod 2
+				s:+game.getinfo(splits[i])
+			Else
+				s:+splits[i]
+			EndIf
+		Next
+		temp=s
+	Wend
+	Return temp
+End Function
