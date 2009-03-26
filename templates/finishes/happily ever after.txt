@@ -2,4 +2,4 @@ type finish
 
 $hero$ and $darling$ lived happily ever after.
 
-^align centre, font handwriting ^The End.
+$style.the end$

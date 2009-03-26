@@ -90,6 +90,8 @@ Type tgame
 			Return romannumeral(progress)
 		Case "template"	'fill in info from template
 			Return curdatum.property(bits[1])
+		Case "style"
+			Return getstyle(bits[1])
 		Default
 			Return ""
 		End Select
@@ -100,6 +102,10 @@ Type tgame
 				Return t.getinfo("name")
 			EndIf
 		EndIf
+	End Method
+	
+	Method getstyle$(kind$)
+		Return templates.filter("type=style & kind="+kind).pick()
 	End Method
 	
 	'MAIN LOOP STUFF
@@ -230,7 +236,7 @@ Type narration Extends gamemode
 		d:datum=templates.pickdatum(kind)
 		game.curdatum=d
 		temp$=d.value
-		style$=templates.filter("type=style & kind="+kind).pick()
+		style$=game.getstyle(kind)
 		n.text=filltemplate(style+temp)'template.Create(style+temp).fill()
 		n.tb=textblock.Create(n.text,gfxwidth-60,.5)
 		Return n

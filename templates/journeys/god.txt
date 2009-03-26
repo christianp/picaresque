@@ -1,7 +1,7 @@
 type journey
 
-"$hero$, go to $curlo$. Your true love is there," God said.
+"^font headline^$hero$, go to $curlo$. Your true love is there,^font print^" God said.
 
-"And make sure you wear a nice hat, girls like that," He added, knowing what $hero$ was like.
+"^font headline^And make sure you wear a nice hat, girls like that^font print^," He added, knowing what $hero$ was like.
 
 $hero$ woke up with a start, and reached for something to write on. It's funny how quickly you forget these kinds of dreams, he thought.

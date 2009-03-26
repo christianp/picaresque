@@ -1,11 +1,11 @@
 type style
 kind intro
 
-^ align centre, font headline ^The Tale of $hero$
+^ align centre, font headline, size 200 ^The Tale of $hero$
 
 ^size 65 ^or,
 
-^size 100 ^$template.subtitle$
+^size 150 ^$template.subtitle$
 
 
-^align left, font print^
+^align left, font print, size 100^
