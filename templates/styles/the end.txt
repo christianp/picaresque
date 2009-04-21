@@ -1,0 +1,4 @@
+type style
+kind the end
+
+^align centre, font handwriting, size 300 ^The End.

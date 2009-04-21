@@ -44,10 +44,7 @@ End Function
 
 Function loadtxt$(filename$)
 	f:TStream=ReadFile(filename)
-	txt$=""
-	While Not Eof(f)
-		txt:+f.ReadString(1000)
-	Wend
+	txt$=f.ReadString(StreamSize(f))
 	CloseFile(f)
 	Return txt
 End Function
@@ -68,6 +65,16 @@ Function romannumeral$(n)
 	Wend
 	Return s
 End Function
+
+Function tabcount(in$)
+	If Not in Return 0
+	c=0
+	While in[c]=9
+		c:+1
+	Wend
+	Return c
+End Function
+
 
 Function poisson(lambda!)
 	If lambda>500 Return poisson(lambda/2)+poisson(lambda/2)

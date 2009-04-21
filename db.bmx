@@ -29,6 +29,7 @@ End Type
 Type db Extends TList
 	Method Load(fname$,mode=0)
 		f:TStream=ReadFile(fname)
+		Print fname
 		
 		l$=f.ReadLine()
 		Local words$[]
@@ -40,9 +41,12 @@ Type db Extends TList
 		Wend
 		If mode=1 'entire file is one datum
 			t$=""
-			While Not Eof(f)
-				t:+f.ReadString(1000)
-			Wend
+			'While Not Eof(f)
+			'CloseFile f
+			't$=LoadText(fname)
+			Print StreamSize(f)
+			t=f.ReadString(f.size()-f.pos())
+			'Wend
 			addlast datum.Create( t,properties )
 		Else 'each line is a separate datum
 			While Not Eof(f)

@@ -21,6 +21,14 @@ Type tterm
 		Return t
 	End Function
 	
+	Method repr$()
+		If many
+			Return rplural
+		Else
+			Return rsingle
+		EndIf
+	End Method
+	
 	Rem
 	Function Create:tterm(name$,+plural=1)
 		t:tterm=New tterm

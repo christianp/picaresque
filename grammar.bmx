@@ -1,3 +1,5 @@
+Include "regexp.bmx"
+
 Global grammars:tmap
 Type grammar
 	Field symbols:tmap
@@ -23,10 +25,11 @@ Type grammar
 	Method addrules(in$)
 		Local lines$[]=in.split(";")
 		For line$=EachIn lines
-			If line[Len(line)-1]=Asc(";")
+			If line And line[Len(line)-1]=Asc(";")
 				line=line[..Len(line)-1]
 			EndIf
-			If Trim(line)
+			line=Trim(line)
+			If line And line[0]<>Asc("#")
 				addrule line
 			EndIf
 		Next
@@ -49,7 +52,7 @@ Type grammar
 	
 	Method addrule(in$)
 		in=ltrim(in)
-		'Print "ADD RULE| "+in
+		gdebugo "ADD RULE| "+in
 		c=0
 		While c<Len(in) And in[c]<>58
 			c:+1
@@ -72,7 +75,7 @@ Type grammar
 		'name$=Trim(in[..c])
 		'rule$=lTrim(in[c+1..])
 		name=Trim(name)
-		rule=ltrim(rule)
+		rule=ltrim(rule,1)
 		category=Trim(category)
 		Local terms$[]=rule.split("~~") 'not two tildes in a row, this is a blitz escaped character
 		mode=1
@@ -85,11 +88,17 @@ Type grammar
 				EndIf
 			Else
 				'Print "  add symbol| "+term
-				If term[Len(term)-1]=Asc("*")
+				Select term[Len(term)-1]
+				Case Asc("*")	'zero or more times
 					l.addlast gmultisymbol.Create(findsymbol(term[..Len(term)-1]))
-				Else
+				Case Asc("?")	'zero or one time
+					l.addlast goptionalsymbol.Create(findsymbol(term[..Len(term)-1]))
+				Case Asc("$")	'regular expression
+					gdebugo "regexp: "+term[..Len(term)-1]
+					l.addlast gregexpsymbol.Create(term[..Len(term)-1])
+				Default
 					l.addlast findsymbol(term)
-				EndIf
+				End Select
 			EndIf
 			mode=1-mode
 		Next
@@ -268,7 +277,7 @@ Type gsymbol Extends grule
 	Method match$(in$,sn:sentence,depth$="")
 		gdebugo depth+"symbol match ("+name+")| "+in
 
-		info$=game.getinfo(name)
+		'info$=game.getinfo(name)
 		If info
 			sn2:sentence=New sentence
 			res$=gtext.Create(info).match(in,sn2,depth+"  ")
@@ -305,7 +314,7 @@ Type gsymbol Extends grule
 	Method options:TList(in$,depth$="")
 		gdebugo depth+"symbol options <"+name+">| "+in
 		l:TList=New TList
-		info$=game.getinfo(name)
+		'info$=game.getinfo(name)
 		If info
 			For txt$=EachIn gtext.Create(info).options(in,depth+"  ")
 				l.addlast txt
@@ -355,11 +364,65 @@ Type gmultisymbol Extends grule
 	End Method
 End Type
 
+Type goptionalsymbol Extends grule
+	Field y:gsymbol
+	
+	Function Create:goptionalsymbol(y:gsymbol)
+		os:goptionalsymbol=New goptionalsymbol
+		os.y=y
+		Return os
+	End Function
+	
+	Method match$(in$,sn:sentence,depth$="")
+		gdebugo depth+"optionalsymbol match| "+in
+		res$=y.match(in,sn,depth+"  ")
+		If res
+			Return res
+		Else
+			Return ~0
+		EndIf
+	End Method
+	
+	Method options:TList(in$,depth$="")
+		gdebugo "optionalsymbol options| "+in
+		Return y.options(in,depth+"  ")
+	End Method
+End Type
+
+Type gregexpsymbol Extends grule
+	Field s:fsa
+	Field re$
+	
+	Function Create:gregexpsymbol(re$)
+		rs:gregexpsymbol=New gregexpsymbol
+		rs.s=fsa.Create(re)
+		rs.re=re
+		Return rs
+	End Function
+	
+	Method match$(in$,sn:sentence,depth$="")
+		gdebugo depth+"regexpsymbol match ("+re+")| "+in
+		res$=s.evaluate(in)
+		If res
+			If res=~0 nres$="" Else nres$=res
+			sn.addparam sentence.Create("regexp",nres,nres)
+			Return res
+		EndIf
+	End Method
+	
+	Method options:TList(in$,depth$="")
+		Return New TList
+	End Method
+			
+End Type
+
 Type gspecialsymbol Extends gsymbol
+	Field name$
 	Field mymatch$(in$,sn:sentence,depth$)
 	Field myoptions:TList(in$,depth$)
 		
 	Method match$(in$,sn:sentence,depth$="")
+		gdebugo depth+"specialsymbol match ("+name+")| "+in
 		Return mymatch(in,sn,depth)
 	End Method
 	
@@ -367,6 +430,14 @@ Type gspecialsymbol Extends gsymbol
 		Return myoptions(in,depth)
 	End Method
 End Type
+
+Function addspecialsymbol( name$, match$(in$,sn:sentence,depth$), options:TList(in$,depth$) )
+	g:gspecialsymbol=New gspecialsymbol
+	g.mymatch=match
+	g.myoptions=options
+	g.name=name
+	specialsymbols.insert name,g
+End Function
 
 Function numbermatch$(in$,sn:sentence,depth$="")
 	If in[0]=Asc("-")
@@ -411,11 +482,22 @@ Function numberoptions:TList(in$,depth$="")
 	Return l
 End Function
 
+Function stringmatch$(in$,sn:sentence,depth$="")
+	If in[0]<>34 Return ""
+	n=in[1..].find("~q")
+	If n>=0
+		n:+1
+		sn.addparam sentence.Create("string",in[1..n],in[1..n])
+		Return in[0..n+1]
+	EndIf
+End Function
+
+Function stringoptions:TList(in$,depth$="")
+	l:TList=New TList
+	l.addlast "<string>"
+End Function
+
 Global specialsymbols:tmap=New tmap
-numsymbol:gspecialsymbol=New gspecialsymbol
-numsymbol.mymatch=numbermatch
-numsymbol.myoptions=numberoptions
-specialsymbols.insert "number",numsymbol
 
 Type sentence
 	Field symbol$,txt$
@@ -436,6 +518,7 @@ Type sentence
 	
 	Method addparam(sn:sentence)
 		If Not sn Return
+		'gdebugo "<<addparam>> "+sn.symbol+"|"+sn.category+"|"+sn.txt
 		params.addlast sn
 	End Method
 	
@@ -472,7 +555,14 @@ Type sentence
 		EndIf
 	End Method
 	
-	Method nextparam$(name$="")
+	Method getvalue$(name$)
+		sn:sentence=getsymbol(name)
+		If sn
+			Return sn.value()
+		EndIf
+	End method
+	
+	Method nextsymbol:sentence(name$="")
 		If name
 			sn:sentence=getsymbol(name)
 		Else
@@ -482,7 +572,21 @@ Type sentence
 		EndIf
 		If sn
 			params.remove sn
+			Return sn
+		EndIf
+	End Method
+	
+	Method nextparam$(name$="")
+		sn:sentence=nextsymbol(name)
+		If sn
 			Return sn.category
+		EndIf
+	End Method
+	
+	Method nextvalue$(name$="")
+		sn:sentence=nextsymbol(name)
+		If sn
+			Return sn.value()
 		EndIf
 	End Method
 		
@@ -504,9 +608,10 @@ Type sentence
 End Type
 
 
-Function ltrim$(in$)
+Function ltrim$(in$,stop=-1)
 	c=0
-	While c<Len(in) And in[c]<=32
+	If stop=-1 stop=Len(in)
+	While c<stop And in[c]<=32
 		c:+1
 	Wend
 	Return in[c..]

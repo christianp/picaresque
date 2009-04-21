@@ -3,6 +3,12 @@ Global genders$[]=["male","female"]
 Global things:tmap
 Type thing
 	Method getinfo$(p$) Abstract
+	
+	Function find:thing(name$)
+		If things.contains(name)
+			Return thing(things.valueforkey(name))
+		EndIf
+	End Function
 End Type
 
 Type character Extends thing

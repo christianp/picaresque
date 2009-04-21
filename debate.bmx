@@ -158,19 +158,15 @@ EndRem
 
 Type blankline
 	Field texts$[]
-	Field blanks:TList
+	Field blanks:blank[2]
 	Field font:wfont
-	
-	Method New()
-		blanks=New TList
-	End Method
 	
 	Function Create:blankline(p:premise,font:wfont)
 		bl:blankline=New blankline
 		line$=p.blankform()
 		bl.texts=line.split(":")
-		bl.blanks.addlast blank.Create(p.firstthing(),font)
-		bl.blanks.addlast blank.Create(p.secondthing(),font)
+		bl.blanks[0]=blank.Create(p.t1,font)
+		bl.blanks[1]=blank.Create(p.t2,font)
 		bl.font=font
 		Return bl
 	End Function
@@ -186,21 +182,35 @@ Type blankline
 	
 	Method draw(x#,y#)
 		x:-width()/2
-		l:TList=blanks.copy()
+		n=0
 		For t$=EachIn texts
 			SetColor 0,0,0
 			font.draw t,x,y,30
 			x:+font.width(t,30)
-			If l.count()
-				b:blank=blank(l.removefirst())
-				b.draw x,y
-				x:+b.width()
-			EndIf
+			Select n
+			Case 0
+				blanks[0].draw x,y
+				x:+blanks[0].width()
+			Case 1
+				'If blanks[0].hold
+					If blanks[0].t.many
+						part=2
+					Else
+						part=1
+					EndIf
+				'Else
+				'	part=0
+				'EndIf
+				blanks[1].draw x,y,part
+				x:+blanks[1].width()
+			End Select
+			n:+1
 		Next
-		For b:blank=EachIn l
-			b.draw x,y
-			x:+b.width()
-		Next
+		
+		'For b:blank=EachIn l
+		'	b.draw x,y
+		'	x:+b.width()
+		'Next
 	End Method
 	
 	Method width#()
@@ -216,36 +226,48 @@ Type blankline
 End Type
 
 Type blank
-	Field value$
+	Field t:tterm,value$
 	Field hold:magpoetry
 	Field font:wfont
 	Field x#,y#
 	
-	Function Create:blank(value$,font:wfont)
+	Function Create:blank(t:tterm,font:wfont)
 		b:blank=New blank
-		b.value=value
+		b.t=t
 		b.font=font
 		Return b
 	End Function
 	
 	Method complete()
-		If hold And hold.value=value Return True Else Return False
+		If hold And hold.t.name=t.name Return True Else Return False
 	End Method
 	
-	Method draw(dx#,dy#)
+	Method draw(dx#,dy#,part=0)
 		x=dx
 		y=dy
-		SetColor 0,0,0
+		If complete()
+			SetColor 0,100,0
+		Else
+			SetColor 0,0,0
+		EndIf
 		DrawRect x,y-font.height(30),width(),font.height(30)
 		If hold
+			Select part
+			Case 0
+				value$=hold.t.name
+			Case 1
+				value$=hold.t.rsingle
+			Case 2
+				value$=hold.t.rplural
+			End Select
 			SetColor 255,255,255
-			font.draw hold.value,x,y,30
+			font.draw value,x,y,30
 		EndIf
 	End Method
 	
 	Method width()
 		If hold
-			Return font.width(hold.value,30)
+			Return font.width(value,30)
 		Else
 			Return font.width("xxxxxxx",30)
 		EndIf
@@ -254,14 +276,14 @@ Type blank
 End Type
 
 Type magpoetry
-	Field value$
+	Field t:tterm
 	Field x#,y#
 	Field font:wfont
 	Field b:blank
 	
-	Function Create:magpoetry(value$,font:wfont)
+	Function Create:magpoetry(t:tterm,font:wfont)
 		m:magpoetry=New magpoetry
-		m.value=value
+		m.t=t
 		m.x=Rnd(.2,.8)*gfxwidth
 		m.y=Rnd(.7,.9)*gfxheight
 		m.font=font
@@ -275,13 +297,13 @@ Type magpoetry
 			Return
 		EndIf
 		SetColor 0,0,0
-		DrawRect x,y-font.height(30),font.width(value,30),font.height(30)
+		DrawRect x,y-font.height(30),width(),font.height(30)
 		SetColor 255,255,255
-		font.draw value,x,y,30
+		font.draw t.repr(),x,y,30
 	End Method
 	
 	Method width()
-		Return font.width(value,30)
+		Return font.width(t.repr(),30)
 	End Method
 	
 End Type
@@ -324,9 +346,11 @@ Type debate Extends gamemode
 		For p:premise=EachIn ps
 			Print p.repr()
 			blanklines.addlast blankline.Create(p,font)
-			words.addlast magpoetry.Create(p.firstthing(),font)
-			words.addlast magpoetry.Create(p.secondthing(),font)
+			words.addlast magpoetry.Create(p.t1,font)
+			words.addlast magpoetry.Create(p.t2,font)
 		Next
+		bl:blankline=blankline(blanklines.last())
+		bl.texts[0]="Therefore, "+bl.texts[0]
 		blanks=New TList
 		For bl:blankline=EachIn blanklines
 			For b:blank=EachIn bl.blanks
@@ -339,7 +363,7 @@ Type debate Extends gamemode
 			b:blank=blank(picklist(l2))
 			l2.remove b
 			For m:magpoetry=EachIn l1
-				If m.value=b.value
+				If m.t=b.t
 					l1.remove m
 					b.hold=m
 					m.b=b
@@ -401,22 +425,22 @@ Type debate Extends gamemode
 		hold=Null
 		h#=font.height(30)
 		For m:magpoetry=EachIn words
-			SetColor 0,0,0
-			DrawLine x,y,m.x,m.y
-			If x>=m.x And x<=m.x+font.width(m.value,30) And y>=m.y-h And y<=m.y
+			'SetColor 0,0,0
+			'DrawLine x,y,m.x,m.y
+			If x>=m.x And x<=m.x+font.width(m.t.name,30) And y>=m.y-h And y<=m.y
 				hold=m
 				offx=m.x-x
 				offy=m.y-y
 			EndIf
 		Next
-		If hold DrawRect 0,0,50,50
+		'If hold DrawRect 0,0,50,50
 		Return hold<>Null
 	End Method
 	
 	Method dropword()
 		For b:blank=EachIn blanks
 			If Not b.hold
-				If (hold.x<b.x+b.width() And hold.x+font.width(hold.value,30)>b.x) And (hold.y<b.y+font.height(30) And hold.y+font.height(30)>b.y)
+				If (hold.x<b.x+b.width() And hold.x+font.width(hold.t.name,30)>b.x) And (hold.y<b.y+font.height(30) And hold.y+font.height(30)>b.y)
 					b.hold=hold
 					hold.x=b.x
 					hold.y=b.y
