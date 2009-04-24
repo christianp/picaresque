@@ -277,7 +277,7 @@ Type gsymbol Extends grule
 	Method match$(in$,sn:sentence,depth$="")
 		gdebugo depth+"symbol match ("+name+")| "+in
 
-		'info$=game.getinfo(name)
+		info$=game.getinfo(name)
 		If info
 			sn2:sentence=New sentence
 			res$=gtext.Create(info).match(in,sn2,depth+"  ")
@@ -314,7 +314,7 @@ Type gsymbol Extends grule
 	Method options:TList(in$,depth$="")
 		gdebugo depth+"symbol options <"+name+">| "+in
 		l:TList=New TList
-		'info$=game.getinfo(name)
+		info$=game.getinfo(name)
 		If info
 			For txt$=EachIn gtext.Create(info).options(in,depth+"  ")
 				l.addlast txt
@@ -498,6 +498,7 @@ Function stringoptions:TList(in$,depth$="")
 End Function
 
 Global specialsymbols:tmap=New tmap
+addspecialsymbol "number",numbermatch,numberoptions
 
 Type sentence
 	Field symbol$,txt$
@@ -560,7 +561,7 @@ Type sentence
 		If sn
 			Return sn.value()
 		EndIf
-	End method
+	End Method
 	
 	Method nextsymbol:sentence(name$="")
 		If name

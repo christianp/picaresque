@@ -139,6 +139,7 @@ Type convo Extends gamemode
 	End Method	
 	
 	Method draw()
+		DrawText game.getinfo("darling"),0,0
 		box.draw
 		gi.draw
 	End Method

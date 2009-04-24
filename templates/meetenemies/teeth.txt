@@ -1,0 +1,5 @@
+type meetenemy
+style enemy
+title $enemy$!
+
+$hero$ spat a few teeth out. An unprovoked attack by $enemy$! Honour demanded a duel to the death!

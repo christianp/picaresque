@@ -1,23 +1,227 @@
-'Include "jsondecoder.bmx"
 Include "grammar.bmx"
 Include "template.bmx"
 Include "helpers.bmx"
 Include "things.bmx"
 Include "db.bmx"
-Include "debate.bmx"
-Include "logic.bmx"
-Include "convo.bmx"
 Include "gfx.bmx"
 Include "typeset.bmx"
 Include "text.bmx"
 Include "font.bmx"
 Include "texpoly.bmx"
-Include "duel.bmx"
-Include "thoughts.bmx"
-Include "syllogisms.bmx"
 
-Global world:db,templates:db
+Include "mise en scene.bmx"
+
+Include "convo.bmx"
+Include "debate.bmx"
+	Include "syllogisms.bmx"
+	Include "logic.bmx"
+Include "duel.bmx"
+	Include "thoughts.bmx"
+Include "narration.bmx"
+
+Global world:db,templates:db,plotdb:db
 Global game:tgame
+
+
+
+game=New tgame
+game.init
+
+Repeat
+	game.update
+	game.draw
+	If AppTerminate() Or KeyHit(KEY_ESCAPE) End
+Forever
+
+Type tgame
+	Field subplots:TList
+	Field plotstack:TList
+	Field variables:tmap
+	Field curmode:gamemode
+	Field curdatum:datum
+
+	Method New()
+		SeedRnd MilliSecs()
+
+		'graphics
+		AppTitle="Picaresque!"
+		initgfx 960,600
+		loadfonts
+		SetClsColor 248,236,194
+		
+		'world
+		grammar.loadall
+		directiongrammar=grammar.find("direction")
+		world=db.dirload("world")
+		templates=db.dirload("templates",1)
+		initsyllogism
+		
+	End Method
+
+	Method init()
+		subplots=New TList
+		plotstack=New TList
+		variables=New tmap
+		things=New tmap
+		tplot.loadall
+		addplot "beginning"
+	End Method
+	
+	
+	'get/set info
+	Method getstyle$(kind$)
+		Return templates.filter("type=style & kind="+kind).pick()
+	End Method
+	
+	Method findthing:thing(name$)
+		t:thing=thing.find(name)
+		If t Return(t)
+		
+		If variables.contains(name)
+			name=String(variables.valueforkey(name))
+			t:thing=thing.find(name)
+			If t
+				Return t
+			EndIf
+		EndIf
+	End Method
+
+	Method getinfo$(key$)
+		Print "GETINFO "+key
+		Local bits$[]=key.split(".")
+		Select bits[0]
+		Case "chapter"
+			Print "CHAPTER"
+			Return romannumeral(progress)
+		Case "template"	'fill in info from template
+			Return curdatum.property(bits[1])
+		Case "style"
+			Return getstyle(bits[1])
+		Case "world"
+			Return world.getinfo(".".join(bits[1..]))
+		Default
+			t:thing=findthing(bits[0])
+			If t
+				If Len(bits)>1
+					Return t.getinfo(".".join(bits[1..]))
+				Else
+					Return t.getinfo("name")
+				EndIf
+			ElseIf variables.contains(bits[0])
+				Return String(variables.valueforkey(bits[0]))
+			Else
+				Return ""
+			EndIf
+		End Select
+	End Method
+	
+	
+	'plot stuff
+	Method setinfo(key$,value$)
+		Local bits$[]=key.split(".")
+		Select bits[0]
+		Case "chapter"
+			progress=Int(value)
+		Default
+			If Len(bits)>1
+				t:thing=thing.find(bits[0])
+				key=".".join(bits[1..])
+				t.setinfo key,value
+			Else
+				Print "add variable "+key+": "+value
+				variables.insert key,value
+			EndIf
+		End Select
+	End Method
+	
+	Method adddirection(d:direction)
+		plotstack.addlast d
+	End Method
+	
+	Method addplot(kind$="",conditions$="")
+		p:tplot=tplot.pick(kind,conditions)
+		Print "add plot "+p.name
+		For d:direction=EachIn p.directions
+			adddirection d
+			Print TTypeId.ForObject(d).name()
+		Next
+	End Method
+	
+	Method pickplot()
+		progress:+1
+		'see if any subplots can be picked up
+		For s:suspense=EachIn subplots
+			If s.met()
+				For d:direction=EachIn s.directions
+					adddirection d
+				Next
+				Return
+			EndIf
+		Next
+		
+		'generate a new plot line
+		addplot
+	End Method
+	
+	Method runplot()
+		While Not curmode
+			While Not plotstack.count()
+				pickplot
+			Wend
+			d:direction=direction(plotstack.removefirst())
+			d.do
+		Wend
+	End Method
+	
+	Method yield(conditions:TList)
+		s:suspense=suspense.Create(conditions,directions)
+		subplots.addlast s
+		plotstack=New TList
+	End Method
+	
+
+
+	'game mode constructors
+	Method narrate(kind$)
+		curmode=narration.Create(kind)
+	End Method
+
+
+	'update/draw
+	Method update()
+		If curmode
+			curmode.update
+			If curmode.status
+				curmode=Null
+			EndIf
+		Else
+			runplot
+		EndIf
+	End Method
+	
+	Method draw()
+		If curmode
+			curmode.draw
+			Flip
+			Cls
+		EndIf
+	End Method
+End Type
+
+Type gamemode
+	Field status
+	
+	Method New()
+		FlushKeys
+		FlushMouse
+	End Method
+	
+	Method update() Abstract
+	Method draw() Abstract
+End Type
+
+
+Rem
 Type tgame
 	Field wins,attempts,progress
 	Field hero:character,darling:character,nemesis:character
@@ -184,7 +388,7 @@ Type tgame
 	
 	Method encounter()
 		attempts:+1
-		opponent=character.Create("male","country="+curlo.country)
+		opponent=character.Create("gender=male&country="+curlo.country)
 		narrate "encounter"
 	End Method
 	
@@ -212,51 +416,7 @@ Type tgame
 	End Method
 End Type
 
-Type gamemode
-	Field status
-	
-	Method New()
-		FlushKeys
-		FlushMouse
-	End Method
-	
-	Method update() Abstract
-	Method draw() Abstract
-End Type
 
-Type narration Extends gamemode
-	Field text$
-	Field kind$
-	Field tb:textblock
-	
-	Function Create:narration(kind$)
-		n:narration=New narration
-		n.kind=kind
-
-		d:datum=templates.pickdatum(kind)
-		game.curdatum=d
-		temp$=d.value
-		style$=game.getstyle(kind)
-		n.text=filltemplate(style+temp)'template.Create(style+temp).fill()
-		n.tb=textblock.Create(n.text,gfxwidth-60,.5)
-		Return n
-	End Function
-	
-	Method update()
-		If GetChar() Or MouseHit(1) Or MouseHit(2)
-			status=1
-		EndIf
-	End Method
-	
-	Method draw()
-		y=0
-'		For line$=EachIn fittext(text,gfxwidth-100)
-'			DrawText line,50,y
-'			y:+TextHeight(line)
-'		Next
-		tb.draw 30,(gfxheight-tb.y)/2
-	End Method
-End Type
 
 
 
@@ -265,14 +425,10 @@ End Type
 game=New tgame
 game.init
 
-'While 1
-'debateme
-'Wend
-
-'game.curmode=New debate
 
 Repeat
 	game.update
 	game.draw
 	If AppTerminate() Or KeyHit(KEY_ESCAPE) End
 Forever
+endrem

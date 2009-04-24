@@ -22,7 +22,7 @@
 	kind :: location :: location;
 
 #conditions;
-	condition :: equals :: ~info~=~ref~;
+	condition :: equals :: ~info~~eq~~ref~;
 	and ::  and ~condition~;
 
 #references;

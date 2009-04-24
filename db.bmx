@@ -13,6 +13,9 @@ Type datum
 	End Function
 	
 	Method property$(name$)
+		If name="value"
+			Return value
+		EndIf
 		If Not properties.contains(name) Return ""
 		Return String(properties.valueforkey(name))
 	End Method
@@ -29,7 +32,7 @@ End Type
 Type db Extends TList
 	Method Load(fname$,mode=0)
 		f:TStream=ReadFile(fname)
-		Print fname
+		'Print fname
 		
 		l$=f.ReadLine()
 		Local words$[]
@@ -40,12 +43,7 @@ Type db Extends TList
 			l=f.ReadLine()
 		Wend
 		If mode=1 'entire file is one datum
-			t$=""
-			'While Not Eof(f)
-			'CloseFile f
-			't$=LoadText(fname)
-			Print StreamSize(f)
-			t=f.ReadString(f.size()-f.pos())
+			t$=f.ReadString(f.size()-f.pos())
 			'Wend
 			addlast datum.Create( t,properties )
 		Else 'each line is a separate datum
@@ -106,5 +104,16 @@ Type db Extends TList
 		Next
 		Return s
 	End Method
+	
+	Method getinfo$(p$)
+		Print "db getinfo: "+p
+		Local bits$[]=p.split(".")
+		If Len(bits)>1
+			Return filter(bits[0]).getinfo(bits[1])
+		Else
+			Return pick(bits[0])
+		EndIf
+	End Method
+		
 End Type
 

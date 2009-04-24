@@ -1,0 +1,12 @@
+type encounter
+
+make enemy character
+	gender "male"
+	country curlo.country
+narrate meetenemy
+fight enemy
+repeat forever
+	nextcountry = world.pick.country
+	yield until curlo.country=nextcountry
+	narrate remeetenemy
+	fight enemy
